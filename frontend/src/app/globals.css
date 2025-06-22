@@ -116,7 +116,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply text-[18px];
+  }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .toaster [data-title] {
+    @apply text-lg;
+  }
+  .toaster [data-description] {
+    @apply text-base;
   }
 }
