@@ -1,0 +1,8 @@
+{
+  "name": "taivideonhanh-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}
