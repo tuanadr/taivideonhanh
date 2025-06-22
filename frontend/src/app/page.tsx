@@ -171,7 +171,7 @@ export default function Home() {
             <CardTitle>{videoInfo.title}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
-            <Image src={videoInfo.thumbnail} alt={videoInfo.title} className="rounded-lg mb-4" width={400} height={225} />
+            <Image src={videoInfo.thumbnail} alt={videoInfo.title} className="rounded-lg mb-4" width={400} height={225} unoptimized={true} />
             <div className="w-full">
               <h3 className="font-bold mb-2">Chọn chất lượng:</h3>
               <ul className="space-y-2">
