@@ -88,6 +88,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
+        // Gửi đầy đủ thông tin cần thiết cho backend
         body: JSON.stringify({ url, format_id, title, ext }),
       });
 
@@ -98,7 +99,8 @@ export default function Home() {
           const errorData = await response.json();
           errorDetails = errorData.error || errorDetails;
         } else {
-          errorDetails = await response.text();
+          // Cố gắng đọc lỗi dưới dạng text nếu không phải JSON
+          errorDetails = await response.text().catch(() => "Không thể đọc chi tiết lỗi.");
         }
         throw new Error(errorDetails);
       }
@@ -111,6 +113,8 @@ export default function Home() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(link.href); // Giải phóng bộ nhớ
+
       toast.success("Tải video thành công!");
 
     } catch (error: unknown) {

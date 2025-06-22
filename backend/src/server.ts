@@ -3,6 +3,14 @@ import sequelize from './config/database';
 import cors from 'cors';
 import { exec, spawn } from 'child_process';
 import contentDisposition from 'content-disposition';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
+const tempDir = '/tmp';
+
+
+
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -29,6 +37,8 @@ const startServer = async () => {
 };
 
 startServer();
+
+
 
 app.post('/api/info', (req: Request, res: Response) => {
   const { url } = req.body;
@@ -87,42 +97,71 @@ app.post('/api/download', (req: Request, res: Response) => {
   }
 
   const fileName = title ? `${title}.${ext || 'mp4'}` : 'video.mp4';
-  res.setHeader('Content-Disposition', contentDisposition(fileName));
-  res.header('Content-Type', 'video/mp4'); // Adjust content type if needed based on ext
+  const tempFileName = `${uuidv4()}.mp4`;
+  const tempFilePath = path.join(tempDir, tempFileName);
 
-  const args = ['-f', `${format_id}+bestaudio`, '--merge-output-format', 'mp4', '-o', '-', url];
+  const formatSelection = `${format_id}+bestaudio/best`;
+  const args = ['-f', formatSelection, '--merge-output-format', 'mp4', '-o', tempFilePath, url, '--verbose'];
   console.log(`Running yt-dlp with args: ${args.join(' ')}`);
 
   const ytdlp = spawn('yt-dlp', args);
 
-  ytdlp.stdout.pipe(res);
-
   let errorData = '';
   ytdlp.stderr.on('data', (data) => {
     errorData += data.toString();
-  });
-
-  ytdlp.on('error', (err) => {
-    console.error('Failed to start yt-dlp process:', err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to start download process', details: err.message });
-    }
-    res.end();
+    console.error(`yt-dlp stderr: ${data}`);
   });
 
   ytdlp.on('close', (code) => {
     console.log(`yt-dlp process exited with code ${code}.`);
-    if (errorData) {
-      console.error(`yt-dlp stderr: ${errorData}`);
+    if (code !== 0) {
+      console.error(`yt-dlp failed. Stderr: ${errorData}`);
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Download process failed', details: errorData });
+      }
+      return;
     }
-    if (code !== 0 && !res.headersSent) {
-      res.status(500).json({ error: 'Failed to download video', details: errorData });
+
+    if (fs.existsSync(tempFilePath)) {
+      fs.readFile(tempFilePath, (err, data) => {
+        if (err) {
+          console.error('Error reading temp file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to read downloaded file' });
+          }
+          fs.unlinkSync(tempFilePath); // Clean up
+          return;
+        }
+
+        res.setHeader('Content-Disposition', contentDisposition(fileName));
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Length', data.length);
+        res.send(data);
+
+        fs.unlink(tempFilePath, (unlinkErr) => {
+          if (unlinkErr) console.error('Error deleting temp file:', unlinkErr);
+          else console.log('Temp file deleted successfully.');
+        });
+      });
+    } else {
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Downloaded file not found' });
+      }
     }
-    res.end();
   });
 
-  // Let's keep this commented out for now to ensure downloads complete
-  // req.on('close', () => {
-  //     ytdlp.kill();
-  // });
+  ytdlp.on('error', (err) => {
+    console.error('Failed to start yt-dlp process:', err);
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to start download process', details: err.message });
+    }
+  });
+
+
 });
