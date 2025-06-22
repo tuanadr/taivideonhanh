@@ -197,9 +197,9 @@ affiliate_ads (id, title, content, target_url, is_active, display_frequency)
 **Mục tiêu:** Hoàn thiện hệ thống streaming và trải nghiệm người dùng
 
 **Backend Tasks:**
-- [ ] **Adaptive bitrate streaming implementation (14h)**
+- [ ] ~~**Adaptive bitrate streaming implementation (14h)**~~
 - [ ] **CDN integration setup (CloudFlare/AWS CloudFront) (10h)**
-- [ ] **Resume download support cho interrupted streams (10h)**
+- [ ] ~~**Resume download support cho interrupted streams (10h)**~~
 - [ ] **Advanced connection pooling và load balancing (10h)**
 - [ ] **Concurrent streaming limits và intelligent queue management (8h)**
 - [ ] **Real-time streaming performance monitoring (10h)**
@@ -210,9 +210,9 @@ affiliate_ads (id, title, content, target_url, is_active, display_frequency)
 
 **Frontend Tasks:**
 - [ ] **Advanced download interface với real-time streaming progress (14h)**
-- [ ] **Resume download functionality (8h)**
-- [ ] Stream history page (thay vì download history) (8h)
-- [ ] User dashboard với streaming statistics (10h)
+- [ ] ~~**Resume download functionality (8h)**~~
+- [ ] ~~Stream history page (thay vì download history) (8h)~~
+- [ ] ~~User dashboard với streaming statistics (10h)~~
 - [ ] Responsive design optimization (8h)
 - [ ] Loading states và error handling cho streams (8h)
 
