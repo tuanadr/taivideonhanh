@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useState } from "react";
 import Image from 'next/image';
+import { Badge } from "@/components/ui/badge";
 
 interface VideoFormat {
   format_id: string;
@@ -37,6 +38,17 @@ interface VideoInfo {
   thumbnail: string;
   formats: VideoFormat[];
 }
+
+const getQualityBadge = (resolution: string) => {
+  if (!resolution) return null;
+  const height = parseInt(resolution.split('x')[1]);
+  if (height >= 4320) return { label: '8K', color: 'bg-purple-600' };
+  if (height >= 2160) return { label: '4K', color: 'bg-red-600' };
+  if (height >= 1440) return { label: '2K', color: 'bg-blue-600' };
+  if (height >= 1080) return { label: 'FHD', color: 'bg-green-600' };
+  if (height >= 720) return { label: 'HD', color: 'bg-yellow-600 text-black' };
+  return null;
+};
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -177,7 +189,11 @@ export default function Home() {
               <ul className="space-y-2">
                                                     {Object.values(
                                                         videoInfo.formats
-                                                            .filter(f => f.vcodec !== 'none' && f.ext === 'mp4' && f.resolution)
+                                                            .filter(f => {
+                                                                if (f.vcodec === 'none' || f.ext !== 'mp4' || !f.resolution) return false;
+                                                                const height = parseInt(f.resolution.split('x')[1]);
+                                                                return height >= 720;
+                                                            })
                                                             .reduce((acc, f) => {
                                                                 const existingFormat = acc[f.resolution];
                                                                 if (!existingFormat) {
@@ -195,7 +211,14 @@ export default function Home() {
                                                         return bRes - aRes;
                                                     }).map((format) => (
                   <li key={format.format_id} className="flex justify-between items-center p-2 border rounded-md">
-                    <span className="text-sm">{format.resolution || format.format_note} - {format.ext}</span>
+                    <div className="flex items-center gap-2">
+                      {getQualityBadge(format.resolution) && (
+                        <Badge variant="destructive" className={`${getQualityBadge(format.resolution)?.color}`}>
+                          {getQualityBadge(format.resolution)?.label}
+                        </Badge>
+                      )}
+                      <span className="text-sm">{format.resolution || format.format_note} - {format.ext}</span>
+                    </div>
                     <Button 
                       variant="secondary"
                       onClick={() => handleDownload(format.format_id, videoInfo.title, format.ext)}
