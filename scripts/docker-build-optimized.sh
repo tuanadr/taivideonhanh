@@ -73,12 +73,14 @@ cleanup_old_resources() {
     log_info "✅ Cleanup completed"
 }
 
-# Enable BuildKit for faster builds
+# Enable BuildKit and Bake for faster builds
 enable_buildkit() {
-    log_step "Enabling Docker BuildKit..."
+    log_step "Enabling Docker BuildKit and Bake..."
     export DOCKER_BUILDKIT=1
     export COMPOSE_DOCKER_CLI_BUILD=1
-    log_info "✅ BuildKit enabled"
+    export COMPOSE_BAKE=true
+    export BUILDKIT_PROGRESS=plain
+    log_info "✅ BuildKit and Bake enabled"
 }
 
 # Build with cache optimization
