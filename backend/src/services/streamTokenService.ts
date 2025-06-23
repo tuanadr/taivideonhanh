@@ -222,14 +222,14 @@ class StreamTokenService {
           [require('sequelize').fn('AVG', require('sequelize').col('rate_limit_count')), 'avgRateLimit'],
         ],
         raw: true,
-      }),
+      }) as any[],
     ]);
 
     return {
       totalActive,
       totalExpired,
       totalUsed,
-      averageRateLimit: parseFloat(rateLimitStats[0]?.avgRateLimit || '0'),
+      averageRateLimit: parseFloat((rateLimitStats[0] as any)?.avgRateLimit || '0'),
     };
   }
 

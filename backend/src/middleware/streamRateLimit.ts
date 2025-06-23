@@ -151,14 +151,15 @@ export const streamTokenRateLimit = (config: Partial<RateLimitConfig> = {}) => {
       // Load user record if not already loaded
       let user = req.userRecord;
       if (!user) {
-        user = await User.findByPk(req.user.userId);
-        if (!user) {
+        const foundUser = await User.findByPk(req.user.userId);
+        if (!foundUser) {
           res.status(401).json({
             error: 'User not found',
             code: 'USER_NOT_FOUND'
           });
           return;
         }
+        user = foundUser;
       }
 
       // Check subscription-based limits
