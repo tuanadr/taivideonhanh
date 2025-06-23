@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { StreamTokenService } from '../services/streamTokenService';
 import { User } from '../models';
+import { Op } from 'sequelize';
 
 interface RateLimitConfig {
   maxTokensPerUser: number;
@@ -67,7 +68,7 @@ class StreamRateLimitService {
       where: {
         user_id: userId,
         created_at: {
-          [require('sequelize').Op.gte]: since,
+          [Op.gte]: since,
         },
       },
     });

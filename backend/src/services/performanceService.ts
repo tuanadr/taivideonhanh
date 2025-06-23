@@ -1,5 +1,6 @@
 import { redis } from '../config/redis';
 import { performance } from 'perf_hooks';
+import { Op } from 'sequelize';
 
 interface PerformanceMetrics {
   timestamp: number;
