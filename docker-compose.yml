@@ -34,6 +34,13 @@ services:
       - DB_PASSWORD=pass
       - DB_NAME=db
       - REDIS_URL=redis://redis:6379
+      - JWT_ACCESS_SECRET=dev-access-secret-key-change-in-production
+      - JWT_REFRESH_SECRET=dev-refresh-secret-key-change-in-production
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - ROTATE_REFRESH_TOKENS=true
+      - ADMIN_EMAILS=admin@taivideonhanh.com
+      - NODE_ENV=development
     depends_on:
       db:
         condition: service_healthy

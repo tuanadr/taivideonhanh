@@ -22,6 +22,10 @@ import { toast } from "sonner";
 import { useState } from "react";
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { UserMenu } from "@/components/auth/UserMenu";
+import { LogIn, UserPlus } from "lucide-react";
 
 interface VideoFormat {
   format_id: string;
@@ -55,8 +59,20 @@ export default function Home() {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
 
   const handleGetInfo = async () => {
+    // Check authentication for free users
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để sử dụng tính năng này");
+      setAuthModalMode('login');
+      setAuthModalOpen(true);
+      return;
+    }
+
     if (!url) {
       toast.error("Vui lòng nhập URL video");
       return;
@@ -66,7 +82,7 @@ export default function Home() {
     toast.info("Đang lấy thông tin video...");
 
     try {
-            const response = await fetch("/api/info", {
+      const response = await fetch("/api/info", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,11 +153,57 @@ export default function Home() {
     }
   };
 
+  const openAuthModal = (mode: 'login' | 'register') => {
+    setAuthModalMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Đang tải...</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      {/* Header with Auth */}
+      <div className="absolute top-4 right-4">
+        {isAuthenticated ? (
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-muted-foreground">
+              Xin chào, <span className="font-medium">{user?.email}</span>
+            </div>
+            <UserMenu />
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" onClick={() => openAuthModal('login')}>
+              <LogIn className="w-4 h-4 mr-2" />
+              Đăng nhập
+            </Button>
+            <Button onClick={() => openAuthModal('register')}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Đăng ký
+            </Button>
+          </div>
+        )}
+      </div>
+
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold">TaiVideoNhanh SaaS Platform</h1>
         <p className="text-muted-foreground">Nền tảng tải video nhanh chóng và dễ dàng</p>
+        {isAuthenticated && (
+          <div className="mt-2">
+            <Badge variant={user?.subscription_tier === 'pro' ? 'default' : 'secondary'}>
+              {user?.subscription_tier === 'pro' ? 'Pro User' : 'Free User'}
+            </Badge>
+          </div>
+        )}
       </div>
       <Card className="w-full max-w-4xl">
         <CardHeader>
@@ -172,7 +234,7 @@ export default function Home() {
             </DialogContent>
           </Dialog>
           <Button onClick={handleGetInfo} disabled={loading}>
-            Tải xuống
+            {isAuthenticated ? 'Tải xuống' : 'Đăng nhập để tải'}
           </Button>
         </CardFooter>
       </Card>
@@ -233,6 +295,13 @@ export default function Home() {
           </CardContent>
         </Card>
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        defaultMode={authModalMode}
+      />
     </main>
   );
 }
