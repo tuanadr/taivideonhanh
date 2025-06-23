@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { StreamTokenService } from '../services/streamTokenService';
 import { User } from '../models';
+import { Op } from 'sequelize';
 
 interface RateLimitConfig {
   maxTokensPerUser: number;
@@ -67,7 +68,7 @@ class StreamRateLimitService {
       where: {
         user_id: userId,
         created_at: {
-          [require('sequelize').Op.gte]: since,
+          [Op.gte]: since,
         },
       },
     });
@@ -151,14 +152,15 @@ export const streamTokenRateLimit = (config: Partial<RateLimitConfig> = {}) => {
       // Load user record if not already loaded
       let user = req.userRecord;
       if (!user) {
-        user = await User.findByPk(req.user.userId);
-        if (!user) {
+        const foundUser = await User.findByPk(req.user.userId);
+        if (!foundUser) {
           res.status(401).json({
             error: 'User not found',
             code: 'USER_NOT_FOUND'
           });
           return;
         }
+        user = foundUser;
       }
 
       // Check subscription-based limits

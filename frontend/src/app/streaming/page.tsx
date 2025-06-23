@@ -17,7 +17,7 @@ import {
 import { VideoAnalyzer } from '@/components/streaming/VideoAnalyzer';
 import { StreamingProgress } from '@/components/streaming/StreamingProgress';
 import { useStreaming } from '@/hooks/useStreaming';
-import { toast } from 'sonner';
+// import { toast } from 'sonner'; // Removed unused import
 
 export default function StreamingPage() {
   const [selectedVideo, setSelectedVideo] = useState<{
@@ -239,12 +239,12 @@ export default function StreamingPage() {
           <CardTitle>How it works</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>1. Enter a video URL and click "Analyze" to get available formats</p>
+          <p>1. Enter a video URL and click &quot;Analyze&quot; to get available formats</p>
           <p>2. Select your preferred format to create a secure stream token</p>
-          <p>3. Click "Start Download" to begin streaming the video directly to your device</p>
+          <p>3. Click &quot;Start Download&quot; to begin streaming the video directly to your device</p>
           <p>4. Monitor the real-time progress and manage your download</p>
           <p className="text-xs mt-4 p-2 bg-muted/50 rounded">
-            <strong>Note:</strong> Stream tokens expire after 30 minutes for security. 
+            <strong>Note:</strong> Stream tokens expire after 30 minutes for security.
             You can refresh them if needed before they expire.
           </p>
         </CardContent>

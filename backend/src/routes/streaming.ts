@@ -7,6 +7,7 @@ import { StreamingService } from '../services/streamingService';
 import { QueueService } from '../services/queueService';
 import { PerformanceService } from '../services/performanceService';
 import { v4 as uuidv4 } from 'uuid';
+import { Op } from 'sequelize';
 
 const router = express.Router();
 

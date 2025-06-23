@@ -2,6 +2,7 @@ import { Queue, Worker, Job, QueueEvents } from 'bullmq';
 import { redis } from '../config/redis';
 import { StreamingService } from './streamingService';
 import { StreamTokenService } from './streamTokenService';
+import { Op } from 'sequelize';
 
 // Job data interfaces
 interface VideoAnalysisJobData {

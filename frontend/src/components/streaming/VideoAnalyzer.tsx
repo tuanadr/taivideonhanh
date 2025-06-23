@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, Download, Clock, FileVideo, Info } from 'lucide-react';
 import { useStreaming } from '@/hooks/useStreaming';
+import Image from 'next/image';
 
 interface VideoAnalyzerProps {
   onFormatSelected?: (videoUrl: string, formatId: string, title: string) => void;
@@ -132,9 +133,11 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
           <CardContent className="space-y-4">
             <div className="flex gap-4">
               {analysisResult.result.videoInfo.thumbnail && (
-                <img
+                <Image
                   src={analysisResult.result.videoInfo.thumbnail}
                   alt="Video thumbnail"
+                  width={128}
+                  height={96}
                   className="w-32 h-24 object-cover rounded-md"
                 />
               )}
