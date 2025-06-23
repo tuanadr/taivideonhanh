@@ -1,0 +1,200 @@
+services:
+  traefik:
+    image: "traefik:v2.9"
+    container_name: "traefik"
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=admin@taivideonhanh.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    restart: unless-stopped
+
+  frontend:
+    build: 
+      context: ./frontend
+      target: runner
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`taivideonhanh.com`) || Host(`www.taivideonhanh.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      # Redirect HTTP to HTTPS
+      - "traefik.http.routers.frontend-http.rule=Host(`taivideonhanh.com`) || Host(`www.taivideonhanh.com`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+  backend:
+    build: 
+      context: ./backend
+      target: runner
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER:-user}
+      - DB_PASSWORD=${DB_PASSWORD:-pass}
+      - DB_NAME=${DB_NAME:-db}
+      - REDIS_URL=redis://redis:6379
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - ROTATE_REFRESH_TOKENS=true
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-admin@taivideonhanh.com}
+      - NODE_ENV=production
+      - STREAM_TOKEN_EXPIRES_MINUTES=30
+      - MAX_CONCURRENT_STREAMS=3
+      - MAX_TOKENS_PER_USER=5
+      - MAX_TOKENS_PER_HOUR=20
+      - STREAM_BUFFER_SIZE=65536
+      - METRICS_RETENTION_HOURS=24
+      - PERFORMANCE_MONITORING_ENABLED=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=(Host(`taivideonhanh.com`) || Host(`www.taivideonhanh.com`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.routers.backend.priority=10"
+      - "traefik.http.services.backend.loadbalancer.server.port=5000"
+      # Redirect HTTP to HTTPS
+      - "traefik.http.routers.backend-http.rule=(Host(`taivideonhanh.com`) || Host(`www.taivideonhanh.com`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend-http.entrypoints=web"
+      - "traefik.http.routers.backend-http.middlewares=redirect-to-https"
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-pass}
+      - POSTGRES_DB=${DB_NAME:-db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-user} -d ${DB_NAME:-db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Backup configuration
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    command: >
+      redis-server
+      --maxmemory 200mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+
+  # Monitoring services
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
