@@ -223,7 +223,7 @@ class StreamTokenService {
           [require('sequelize').fn('AVG', require('sequelize').col('rate_limit_count')), 'avgRateLimit'],
         ],
         raw: true,
-      }) as any[],
+      }) as unknown as any[],
     ]);
 
     return {

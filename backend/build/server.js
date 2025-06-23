@@ -20,33 +20,84 @@ const content_disposition_1 = __importDefault(require("content-disposition"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const uuid_1 = require("uuid");
+// Import services
+const queueService_1 = require("./services/queueService");
+const performanceService_1 = require("./services/performanceService");
+const redis_1 = require("./config/redis");
 // Import models to ensure they are registered
 require("./models");
 // Import routes
 const auth_1 = __importDefault(require("./routes/auth"));
+const streaming_1 = __importDefault(require("./routes/streaming"));
+const monitoring_1 = __importDefault(require("./routes/monitoring"));
 const tempDir = '/tmp';
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
-// Auth routes
+// Routes
 app.use('/api/auth', auth_1.default);
+app.use('/api/streaming', streaming_1.default);
+app.use('/api/monitoring', monitoring_1.default);
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
 });
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        // Initialize database
         yield database_1.default.authenticate();
         console.log('Database connection has been established successfully.');
         yield database_1.default.sync(); // Sync all models
+        // Initialize queue workers
+        yield queueService_1.QueueService.initializeWorkers();
+        console.log('Queue workers initialized successfully.');
+        // Start performance monitoring
+        setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+            yield performanceService_1.PerformanceService.storeMetrics();
+        }), 60000); // Store metrics every minute
+        // Cleanup old data periodically
+        setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
+            yield performanceService_1.PerformanceService.cleanupOldMetrics();
+            yield queueService_1.QueueService.cleanupJobs();
+        }), 60 * 60 * 1000); // Cleanup every hour
         app.listen(port, () => {
             console.log(`Server is running on port ${port}`);
         });
     }
     catch (error) {
-        console.error('Unable to connect to the database:', error);
+        console.error('Unable to start server:', error);
         process.exit(1);
     }
+});
+// Graceful shutdown handling
+const gracefulShutdown = (signal) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(`Received ${signal}. Starting graceful shutdown...`);
+    try {
+        // Close queue workers and connections
+        yield queueService_1.QueueService.shutdown();
+        // Close Redis connections
+        yield (0, redis_1.closeRedisConnections)();
+        // Close database connection
+        yield database_1.default.close();
+        console.log('Graceful shutdown completed');
+        process.exit(0);
+    }
+    catch (error) {
+        console.error('Error during graceful shutdown:', error);
+        process.exit(1);
+    }
+});
+// Handle shutdown signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('unhandledRejection');
 });
 startServer();
 app.post('/api/info', (req, res) => {
