@@ -1,5 +1,6 @@
 import { StreamToken } from '../models';
 import { Request } from 'express';
+import { Op } from 'sequelize';
 
 interface CreateStreamTokenData {
   userId: string;
@@ -155,7 +156,7 @@ class StreamTokenService {
         user_id: userId,
         used: false,
         expires_at: {
-          [require('sequelize').Op.gt]: new Date(),
+          [Op.gt]: new Date(),
         },
       },
       order: [['created_at', 'DESC']],
@@ -201,14 +202,14 @@ class StreamTokenService {
         where: {
           used: false,
           expires_at: {
-            [require('sequelize').Op.gt]: new Date(),
+            [Op.gt]: new Date(),
           },
         },
       }),
       StreamToken.count({
         where: {
           expires_at: {
-            [require('sequelize').Op.lt]: new Date(),
+            [Op.lt]: new Date(),
           },
         },
       }),
