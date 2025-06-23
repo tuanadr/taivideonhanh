@@ -7,16 +7,22 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+// Import models to ensure they are registered
+import './models';
+
+// Import routes
+import authRoutes from './routes/auth';
+
 const tempDir = '/tmp';
-
-
-
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Backend server is running!');
