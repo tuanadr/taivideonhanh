@@ -74,8 +74,8 @@ COPY --from=builder --chown=appuser:appuser /app/backend/package.json ./backend/
 
 # Copy built frontend (Next.js standalone)
 COPY --from=builder --chown=appuser:appuser /app/frontend/.next/standalone ./frontend/
-COPY --from=builder --chown=appuser:appuser /app/frontend/.next/static ./frontend/.next/static
-COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/public
+COPY --from=builder --chown=appuser:appuser /app/frontend/.next/static ./frontend/frontend/.next/static
+COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/frontend/public
 
 # Copy configuration files
 COPY nginx.conf /etc/nginx/nginx.conf
