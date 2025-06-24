@@ -137,12 +137,27 @@ class StreamingService {
         throw new Error(`Unsupported format: ${selectedFormat.ext}`);
       }
 
-      // Prepare yt-dlp arguments
+      // Check if selected format has audio
+      const hasAudio = selectedFormat.acodec && selectedFormat.acodec !== 'none';
+
+      // Prepare yt-dlp arguments with smart format selection
+      let formatString;
+      if (hasAudio) {
+        // Format already has audio, use it directly
+        formatString = formatId;
+      } else {
+        // Format doesn't have audio, try to merge with best audio
+        formatString = `${formatId}+bestaudio/best[ext=mp4]/best`;
+      }
+
       const ytdlpArgs = [
-        '--format', formatId,
+        '--format', formatString,
         '--output', '-',
         '--no-warnings',
         '--no-playlist',
+        '--merge-output-format', 'mp4',
+        '--audio-format', 'mp3',
+        '--embed-audio',
       ];
 
       // Add optional headers

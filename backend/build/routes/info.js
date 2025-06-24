@@ -72,7 +72,7 @@ router.post('/', auth_1.authenticate, videoInfoValidation, validateRequest, (req
             upload_date: videoInfo.upload_date,
             formats: videoInfo.formats
                 .filter(format => {
-                // Filter for video formats with reasonable quality
+                // Filter for video formats with reasonable quality and audio
                 if (format.vcodec === 'none' || format.ext !== 'mp4')
                     return false;
                 if (!format.resolution)
@@ -80,9 +80,24 @@ router.post('/', auth_1.authenticate, videoInfoValidation, validateRequest, (req
                 const height = parseInt(format.resolution.split('x')[1]);
                 return height >= 360; // Minimum 360p
             })
+                // Prioritize formats with both video and audio
+                .sort((a, b) => {
+                var _a, _b;
+                // First priority: formats with both video and audio
+                const aHasAudio = a.acodec && a.acodec !== 'none';
+                const bHasAudio = b.acodec && b.acodec !== 'none';
+                if (aHasAudio && !bHasAudio)
+                    return -1;
+                if (!aHasAudio && bHasAudio)
+                    return 1;
+                // Second priority: resolution (higher first)
+                const aHeight = parseInt(((_a = a.resolution) === null || _a === void 0 ? void 0 : _a.split('x')[1]) || '0');
+                const bHeight = parseInt(((_b = b.resolution) === null || _b === void 0 ? void 0 : _b.split('x')[1]) || '0');
+                return bHeight - aHeight;
+            })
                 .map(format => ({
                 format_id: format.format_id,
-                format_note: format.format_note || `${format.resolution}`,
+                format_note: format.format_note || `${format.resolution}${format.acodec && format.acodec !== 'none' ? ' (có âm thanh)' : ' (không có âm thanh)'}`,
                 ext: format.ext,
                 resolution: format.resolution,
                 vcodec: format.vcodec,
@@ -90,13 +105,6 @@ router.post('/', auth_1.authenticate, videoInfoValidation, validateRequest, (req
                 filesize: format.filesize,
                 fps: format.fps
             }))
-                .sort((a, b) => {
-                var _a, _b;
-                // Sort by resolution (height) descending
-                const aHeight = parseInt(((_a = a.resolution) === null || _a === void 0 ? void 0 : _a.split('x')[1]) || '0');
-                const bHeight = parseInt(((_b = b.resolution) === null || _b === void 0 ? void 0 : _b.split('x')[1]) || '0');
-                return bHeight - aHeight;
-            })
         };
         res.json(response);
     }
