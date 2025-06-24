@@ -6,6 +6,28 @@ import { StreamingService } from '../services/streamingService';
 const router = Router();
 
 /**
+ * Helper function to generate quality labels
+ */
+function getQualityLabel(resolution: string, hasAudio: boolean): string {
+  if (!resolution) return 'Unknown quality';
+
+  const height = parseInt(resolution.split('x')[1]);
+  let qualityName = '';
+
+  if (height >= 2160) qualityName = '4K';
+  else if (height >= 1440) qualityName = '1440p';
+  else if (height >= 1080) qualityName = '1080p';
+  else if (height >= 720) qualityName = '720p';
+  else if (height >= 480) qualityName = '480p';
+  else if (height >= 360) qualityName = '360p';
+  else if (height >= 240) qualityName = '240p';
+  else qualityName = `${height}p`;
+
+  const audioStatus = hasAudio ? 'có âm thanh' : 'không có âm thanh';
+  return `${qualityName} (${audioStatus})`;
+}
+
+/**
  * Validation middleware
  */
 const validateRequest = (req: Request, res: Response, next: Function) => {
@@ -69,46 +91,87 @@ router.post('/',
       // Get video information using StreamingService with fallback
       const videoInfo = await StreamingService.getVideoInfoWithFallback(url);
       
-      // Filter and format the response for frontend compatibility
+      // Enhanced format filtering and processing
+      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+      const isTikTok = url.includes('tiktok.com');
+
+      console.log(`Processing ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'other'} video with ${videoInfo.formats?.length || 0} total formats`);
+
+      // Filter and process formats based on platform
+      let filteredFormats = videoInfo.formats || [];
+
+      if (isYouTube) {
+        // YouTube-specific filtering: more permissive to handle DASH streams
+        filteredFormats = filteredFormats.filter(format => {
+          // Must have video codec (not audio-only)
+          if (!format.vcodec || format.vcodec === 'none') return false;
+
+          // Accept multiple extensions for YouTube
+          const supportedExts = ['mp4', 'webm', 'mkv'];
+          if (!supportedExts.includes(format.ext)) return false;
+
+          // Must have resolution info
+          if (!format.resolution) return false;
+
+          // Lower minimum resolution for more options
+          const height = parseInt(format.resolution.split('x')[1]);
+          return height >= 240; // Minimum 240p
+        });
+      } else {
+        // TikTok and other platforms: original logic (works fine)
+        filteredFormats = filteredFormats.filter(format => {
+          if (format.vcodec === 'none' || format.ext !== 'mp4') return false;
+          if (!format.resolution) return false;
+
+          const height = parseInt(format.resolution.split('x')[1]);
+          return height >= 360; // Minimum 360p
+        });
+      }
+
+      console.log(`After filtering: ${filteredFormats.length} formats available`);
+
+      // Sort formats intelligently
+      const sortedFormats = filteredFormats.sort((a, b) => {
+        // First priority: combined formats (video + audio) over video-only
+        const aHasAudio = a.acodec && a.acodec !== 'none';
+        const bHasAudio = b.acodec && b.acodec !== 'none';
+
+        if (aHasAudio && !bHasAudio) return -1;
+        if (!aHasAudio && bHasAudio) return 1;
+
+        // Second priority: resolution (higher first)
+        const aHeight = parseInt(a.resolution?.split('x')[1] || '0');
+        const bHeight = parseInt(b.resolution?.split('x')[1] || '0');
+        return bHeight - aHeight;
+      });
+
+      // Format response with enhanced information
       const response = {
         title: videoInfo.title,
         thumbnail: videoInfo.thumbnail,
         duration: videoInfo.duration,
         uploader: videoInfo.uploader,
         upload_date: videoInfo.upload_date,
-        formats: videoInfo.formats
-          .filter(format => {
-            // Filter for video formats with reasonable quality and audio
-            if (format.vcodec === 'none' || format.ext !== 'mp4') return false;
-            if (!format.resolution) return false;
+        platform: isYouTube ? 'youtube' : isTikTok ? 'tiktok' : 'other',
+        total_formats: videoInfo.formats?.length || 0,
+        available_formats: sortedFormats.length,
+        formats: sortedFormats.map(format => {
+          const hasAudio = format.acodec && format.acodec !== 'none';
+          const quality = getQualityLabel(format.resolution, hasAudio);
 
-            const height = parseInt(format.resolution.split('x')[1]);
-            return height >= 360; // Minimum 360p
-          })
-          // Prioritize formats with both video and audio
-          .sort((a, b) => {
-            // First priority: formats with both video and audio
-            const aHasAudio = a.acodec && a.acodec !== 'none';
-            const bHasAudio = b.acodec && b.acodec !== 'none';
-
-            if (aHasAudio && !bHasAudio) return -1;
-            if (!aHasAudio && bHasAudio) return 1;
-
-            // Second priority: resolution (higher first)
-            const aHeight = parseInt(a.resolution?.split('x')[1] || '0');
-            const bHeight = parseInt(b.resolution?.split('x')[1] || '0');
-            return bHeight - aHeight;
-          })
-          .map(format => ({
+          return {
             format_id: format.format_id,
-            format_note: format.format_note || `${format.resolution}${format.acodec && format.acodec !== 'none' ? ' (có âm thanh)' : ' (không có âm thanh)'}`,
+            format_note: format.format_note || quality,
             ext: format.ext,
             resolution: format.resolution,
             vcodec: format.vcodec,
             acodec: format.acodec,
             filesize: format.filesize,
-            fps: format.fps
-          }))
+            fps: format.fps,
+            has_audio: hasAudio,
+            quality_label: quality
+          };
+        })
       };
 
       res.json(response);
