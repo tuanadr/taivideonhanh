@@ -290,8 +290,9 @@ class StreamingService {
 
         // Platform-specific optimizations with random user-agent
         if (isYouTube) {
+          // Modified YouTube args to get more formats - only skip HLS, keep DASH
           ytdlpArgs.push(
-            '--extractor-args', 'youtube:skip=dash,hls',
+            '--extractor-args', 'youtube:skip=hls', // Keep DASH for quality options
             '--user-agent', this.getRandomUserAgent()
           );
         } else if (isTikTok) {
@@ -517,7 +518,7 @@ class StreamingService {
           '--merge-output-format', 'mp4',
           '--audio-format', 'mp3',
           '--embed-audio',
-          '--extractor-args', 'youtube:skip=dash,hls',
+          '--extractor-args', 'youtube:skip=hls', // Keep DASH for quality options
           '--user-agent', userAgent || this.getRandomUserAgent()
         );
       } else if (isTikTok) {
@@ -781,7 +782,7 @@ class StreamingService {
       const cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
 
       ytdlpArgs.push(
-        '--extractor-args', 'youtube:skip=dash',
+        '--extractor-args', 'youtube:skip=hls', // Consistent with main method
         '--user-agent', this.getRandomUserAgent(),
         url
       );
