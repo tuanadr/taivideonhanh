@@ -3,6 +3,16 @@ const nextConfig = {
   // Enable standalone output for Docker optimization
   output: 'standalone',
 
+  // API rewrites for monorepo container
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:5000/api/:path*',
+      },
+    ]
+  },
+
   // Optimize images
   images: {
     remotePatterns: [
