@@ -19,7 +19,9 @@ WORKDIR /usr/src/app
 COPY package.json package-lock.json* ./
 
 # Install dependencies with npm ci for faster builds
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+# Enable BuildKit cache mount for faster builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # 3. Builder Stage
 FROM base AS builder

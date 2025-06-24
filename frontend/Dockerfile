@@ -9,7 +9,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies with npm ci for faster, reliable builds
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+# Enable BuildKit cache mount for faster builds
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # 2. Builder Stage
 FROM node:18-alpine AS builder

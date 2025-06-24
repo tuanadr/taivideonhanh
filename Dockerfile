@@ -1,0 +1,147 @@
+# Monorepo Dockerfile for EasyPanel
+# Chạy cả frontend và backend trong một container
+
+# 1. Base stage
+FROM node:18-alpine AS base
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    ffmpeg \
+    nginx \
+    supervisor \
+    && pip3 install --break-system-packages yt-dlp
+
+# 2. Dependencies stage
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+COPY backend/package*.json ./backend/
+
+# Install dependencies for monorepo
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --workspaces --only=production
+
+# 3. Build stage
+FROM base AS builder
+WORKDIR /app
+
+# Copy dependencies
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+
+# Copy source code
+COPY . .
+
+# Build backend TypeScript
+RUN cd backend && npm run build
+
+# Build frontend Next.js
+RUN cd frontend && npm run build
+
+# 4. Production stage
+FROM base AS runner
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S appuser && \
+    adduser -S appuser -u 1001 -G appuser
+
+# Copy built applications
+COPY --from=deps --chown=appuser:appuser /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:appuser /app/backend/build ./backend/build
+COPY --from=builder --chown=appuser:appuser /app/backend/package.json ./backend/
+COPY --from=builder --chown=appuser:appuser /app/frontend/.next/standalone ./frontend/
+COPY --from=builder --chown=appuser:appuser /app/frontend/.next/static ./frontend/.next/static
+COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/public
+
+# Create nginx config for internal routing
+RUN cat > /etc/nginx/nginx.conf << 'EOF'
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream backend {
+        server 127.0.0.1:5000;
+    }
+    
+    upstream frontend {
+        server 127.0.0.1:3000;
+    }
+    
+    server {
+        listen 80;
+        
+        # API routes to backend
+        location /api/ {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Everything else to frontend
+        location / {
+            proxy_pass http://frontend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+EOF
+
+# Create supervisor config
+RUN cat > /etc/supervisord.conf << 'EOF'
+[supervisord]
+nodaemon=true
+user=root
+
+[program:backend]
+command=node backend/build/server.js
+directory=/app
+user=appuser
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:frontend]
+command=node frontend/server.js
+directory=/app
+user=appuser
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+environment=PORT=3000,HOSTNAME=0.0.0.0
+
+[program:nginx]
+command=nginx -g "daemon off;"
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+# Expose port 80 (nginx sẽ route internally)
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/api/health || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
