@@ -28,6 +28,7 @@ import adminRoutes from './routes/admin';
 import legalRoutes from './routes/legal';
 import analyticsRoutes from './routes/analytics';
 import healthRoutes from './routes/health';
+import infoRoutes from './routes/info';
 
 const tempDir = '/tmp';
 
@@ -49,6 +50,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/legal', legalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/health', healthRoutes);
+app.use('/api/info', infoRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Backend server is running!');

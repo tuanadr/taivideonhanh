@@ -63,10 +63,10 @@ export const PaymentHistory: React.FC = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5" />
-          Payment History
+          Lịch Sử Thanh Toán
         </CardTitle>
         <CardDescription>
-          View all your payment transactions and their status
+          Xem tất cả giao dịch thanh toán và trạng thái của chúng
         </CardDescription>
       </CardHeader>
       
@@ -74,9 +74,9 @@ export const PaymentHistory: React.FC = () => {
         {payments.length === 0 ? (
           <div className="text-center py-8">
             <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No payment history found</p>
+            <p className="text-muted-foreground">Không tìm thấy lịch sử thanh toán</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Your payment transactions will appear here once you make a purchase
+              Các giao dịch thanh toán của bạn sẽ xuất hiện ở đây sau khi bạn thực hiện mua hàng
             </p>
           </div>
         ) : (
@@ -84,11 +84,11 @@ export const PaymentHistory: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Ngày</TableHead>
+                  <TableHead>Gói</TableHead>
+                  <TableHead>Số Tiền</TableHead>
+                  <TableHead>Phương Thức</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -105,7 +105,7 @@ export const PaymentHistory: React.FC = () => {
                     
                     <TableCell>
                       <span className="font-medium">
-                        {payment.subscription?.plan?.name || 'Unknown Plan'}
+                        {payment.subscription?.plan?.name || 'Gói Không Xác Định'}
                       </span>
                     </TableCell>
                     

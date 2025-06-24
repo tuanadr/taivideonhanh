@@ -114,14 +114,14 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {getStatusIcon()}
-            Download Progress
+            Tiến Trình Tải
           </div>
           <Badge variant={getStatusColor()}>
             {getStatusText()}
           </Badge>
         </CardTitle>
         <CardDescription>
-          {fileName && `Downloading: ${fileName}`}
+          {fileName && `Đang tải: ${fileName}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -129,7 +129,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
         {progress && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Progress</span>
+              <span>Tiến trình</span>
               <span>{Math.round(progress.percentage)}%</span>
             </div>
             <Progress 
@@ -142,7 +142,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
                 {progress.total > 0 && ` / ${formatBytes(progress.total)}`}
               </span>
               <span>
-                {progress.percentage < 100 ? `${Math.round(progress.percentage)}%` : 'Complete'}
+                {progress.percentage < 100 ? `${Math.round(progress.percentage)}%` : 'Hoàn thành'}
               </span>
             </div>
           </div>
@@ -155,14 +155,14 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
               <Zap className="h-4 w-4 text-blue-500" />
               <div>
                 <div className="font-medium">{formatSpeed(progress.speed)}</div>
-                <div className="text-xs text-muted-foreground">Speed</div>
+                <div className="text-xs text-muted-foreground">Tốc độ</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-green-500" />
               <div>
                 <div className="font-medium">{formatTime(elapsedTime)}</div>
-                <div className="text-xs text-muted-foreground">Elapsed</div>
+                <div className="text-xs text-muted-foreground">Đã trôi qua</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -171,7 +171,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
                 <div className="font-medium">
                   {progress.timeRemaining > 0 ? formatTime(Math.ceil(progress.timeRemaining)) : '--:--'}
                 </div>
-                <div className="text-xs text-muted-foreground">Remaining</div>
+                <div className="text-xs text-muted-foreground">Còn lại</div>
               </div>
             </div>
           </div>
@@ -182,7 +182,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <p className="text-sm text-destructive font-medium">Download Failed</p>
+              <p className="text-sm text-destructive font-medium">Tải Thất Bại</p>
             </div>
             <p className="text-sm text-destructive mt-1">{error}</p>
           </div>
@@ -193,10 +193,10 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
           <div className="p-3 bg-green-50 border border-green-200 rounded-md">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-green-800 font-medium">Download Completed Successfully</p>
+              <p className="text-sm text-green-800 font-medium">Tải Hoàn Thành Thành Công</p>
             </div>
             <p className="text-sm text-green-700 mt-1">
-              Downloaded {progress.total > 0 ? formatBytes(progress.total) : formatBytes(progress.loaded)} in {formatTime(elapsedTime)}
+              Đã tải {progress.total > 0 ? formatBytes(progress.total) : formatBytes(progress.loaded)} trong {formatTime(elapsedTime)}
             </p>
           </div>
         )}
@@ -215,12 +215,12 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
                   {isPaused ? (
                     <>
                       <Play className="h-4 w-4 mr-2" />
-                      Resume
+                      Tiếp tục
                     </>
                   ) : (
                     <>
                       <Pause className="h-4 w-4 mr-2" />
-                      Pause
+                      Tạm dừng
                     </>
                   )}
                 </Button>
@@ -231,7 +231,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
                 onClick={onCancel}
               >
                 <X className="h-4 w-4 mr-2" />
-                Cancel
+                Hủy
               </Button>
             </>
           )}
@@ -243,7 +243,7 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
               onClick={() => window.location.reload()}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              Thử lại
             </Button>
           )}
         </div>
@@ -252,9 +252,9 @@ export const StreamingProgress: React.FC<StreamingProgressProps> = ({
         {progress && (
           <div className="text-xs text-muted-foreground border-t pt-2">
             <div className="flex justify-between">
-              <span>Started: {new Date(startTime).toLocaleTimeString()}</span>
+              <span>Bắt đầu: {new Date(startTime).toLocaleTimeString()}</span>
               {!isStreaming && progress.percentage === 100 && (
-                <span>Completed: {new Date().toLocaleTimeString()}</span>
+                <span>Hoàn thành: {new Date().toLocaleTimeString()}</span>
               )}
             </div>
           </div>

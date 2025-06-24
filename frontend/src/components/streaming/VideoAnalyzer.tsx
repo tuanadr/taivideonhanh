@@ -71,32 +71,32 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Play className="h-5 w-5" />
-            Video Analysis
+            Phân Tích Video
           </CardTitle>
           <CardDescription>
-            Enter a video URL to analyze available formats and quality options
+            Nhập URL video để phân tích các định dạng và tùy chọn chất lượng có sẵn
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Enter video URL (YouTube, etc.)"
+              placeholder="Nhập URL video (YouTube, v.v.)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               disabled={isAnalyzing}
               className="flex-1"
             />
-            <Button 
+            <Button
               onClick={handleAnalyze}
               disabled={!url.trim() || isAnalyzing}
             >
               {isAnalyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing
+                  Đang phân tích
                 </>
               ) : (
-                'Analyze'
+                'Phân tích'
               )}
             </Button>
           </div>
@@ -127,7 +127,7 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Info className="h-5 w-5" />
-              Video Information
+              Thông Tin Video
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -147,7 +147,7 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
                 </h3>
                 {analysisResult.result.videoInfo.uploader && (
                   <p className="text-sm text-muted-foreground">
-                    By {analysisResult.result.videoInfo.uploader}
+                    Bởi {analysisResult.result.videoInfo.uploader}
                   </p>
                 )}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -159,7 +159,7 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
                   )}
                   <div className="flex items-center gap-1">
                     <FileVideo className="h-4 w-4" />
-                    {analysisResult.result.supportedFormatsCount} formats available
+                    {analysisResult.result.supportedFormatsCount} định dạng có sẵn
                   </div>
                 </div>
               </div>
@@ -174,10 +174,10 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Download className="h-5 w-5" />
-              Available Formats
+              Định Dạng Có Sẵn
             </CardTitle>
             <CardDescription>
-              Select a format to create a download token
+              Chọn một định dạng để tạo token tải xuống
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -207,12 +207,12 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
                           <span>{format.format_note} • </span>
                         )}
                         {format.acodec && format.acodec !== 'none' && (
-                          <span>Audio: {format.acodec} • </span>
+                          <span>Âm thanh: {format.acodec} • </span>
                         )}
                         {format.vcodec && format.vcodec !== 'none' && (
                           <span>Video: {format.vcodec} • </span>
                         )}
-                        Size: {formatFileSize(format.filesize)}
+                        Kích thước: {formatFileSize(format.filesize)}
                       </div>
                     </div>
                   </div>
@@ -220,7 +220,7 @@ export const VideoAnalyzer: React.FC<VideoAnalyzerProps> = ({ onFormatSelected }
                     size="sm"
                     onClick={() => handleFormatSelect(format.format_id)}
                   >
-                    Select
+                    Chọn
                   </Button>
                 </div>
               ))}

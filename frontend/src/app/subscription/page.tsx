@@ -22,16 +22,16 @@ export default function SubscriptionPage() {
     }
 
     try {
-      // In a real app, you would integrate with Stripe Elements here
+      // In a real app, you would integrate with payment gateway here
       // For now, we'll just show a message
-      toast.info(`Payment integration would be implemented here for plan: ${planId}`);
+      toast.info(`Tích hợp thanh toán sẽ được triển khai cho gói: ${planId}`);
 
       // Example of how you would create a payment intent:
       // const { clientSecret } = await createPaymentIntent(planId, 'card');
-      // Then redirect to Stripe checkout or use Stripe Elements
+      // Then redirect to payment gateway or use payment elements
 
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to process payment');
+      toast.error(error instanceof Error ? error.message : 'Không thể xử lý thanh toán');
     }
   };
 
@@ -42,21 +42,21 @@ export default function SubscriptionPage() {
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Subscription Plans</h1>
+            <h1 className="text-3xl font-bold mb-4">Gói Đăng Ký</h1>
             <p className="text-muted-foreground">
-              Choose the perfect plan for your video downloading needs
+              Chọn gói hoàn hảo cho nhu cầu tải video của bạn
             </p>
           </div>
 
           <Card className="text-center py-12">
             <CardContent>
               <Crown className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Login Required</h2>
+              <h2 className="text-xl font-semibold mb-2">Cần Đăng Nhập</h2>
               <p className="text-muted-foreground mb-6">
-                Please login to view and manage your subscription
+                Vui lòng đăng nhập để xem và quản lý đăng ký của bạn
               </p>
               <Button>
-                Login to Continue
+                Đăng Nhập Để Tiếp Tục
               </Button>
             </CardContent>
           </Card>
@@ -72,9 +72,9 @@ export default function SubscriptionPage() {
       <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">Subscription Management</h1>
+          <h1 className="text-3xl font-bold mb-4">Quản Lý Đăng Ký</h1>
           <p className="text-muted-foreground">
-            Manage your subscription, view payment history, and upgrade your plan
+            Quản lý đăng ký, xem lịch sử thanh toán và nâng cấp gói của bạn
           </p>
         </div>
 
@@ -82,28 +82,28 @@ export default function SubscriptionPage() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="plans" className="flex items-center gap-2">
               <Crown className="w-4 h-4" />
-              Plans
+              Gói
             </TabsTrigger>
             <TabsTrigger value="status" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
-              Status
+              Trạng Thái
             </TabsTrigger>
             <TabsTrigger value="payments" className="flex items-center gap-2">
               <CreditCard className="w-4 h-4" />
-              Payments
+              Thanh Toán
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="w-4 h-4" />
-              History
+              Lịch Sử
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="plans" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Choose Your Plan</CardTitle>
+                <CardTitle>Chọn Gói Của Bạn</CardTitle>
                 <CardDescription>
-                  Select the plan that best fits your needs. You can upgrade or downgrade at any time.
+                  Chọn gói phù hợp nhất với nhu cầu của bạn. Bạn có thể nâng cấp hoặc hạ cấp bất cứ lúc nào.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -126,17 +126,17 @@ export default function SubscriptionPage() {
           <TabsContent value="history" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Subscription History</CardTitle>
+                <CardTitle>Lịch Sử Đăng Ký</CardTitle>
                 <CardDescription>
-                  View your complete subscription history and changes
+                  Xem lịch sử đăng ký đầy đủ và các thay đổi của bạn
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
                   <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Subscription history coming soon</p>
+                  <p className="text-muted-foreground">Lịch sử đăng ký sẽ có sớm</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    This feature will show your subscription changes over time
+                    Tính năng này sẽ hiển thị các thay đổi đăng ký của bạn theo thời gian
                   </p>
                 </div>
               </CardContent>

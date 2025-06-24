@@ -55,15 +55,15 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
   const getFeatureLabel = (feature: string) => {
     switch (feature) {
       case 'basic_download':
-        return 'Basic Downloads';
+        return 'Tải Cơ Bản';
       case 'hd_download':
-        return 'HD Downloads';
+        return 'Tải HD';
       case 'ad_free':
-        return 'Ad-Free Experience';
+        return 'Không Quảng Cáo';
       case 'priority_support':
-        return 'Priority Support';
+        return 'Hỗ Trợ Ưu Tiên';
       case 'concurrent_streams':
-        return 'Multiple Concurrent Streams';
+        return 'Nhiều Stream Đồng Thời';
       default:
         return feature.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -111,7 +111,7 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-3 py-1">
                   <Crown className="w-3 h-3 mr-1" />
-                  Most Popular
+                  Phổ Biến Nhất
                 </Badge>
               </div>
             )}
@@ -126,9 +126,9 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
                 {plan.name}
               </CardTitle>
               <CardDescription>
-                {isFree 
-                  ? 'Perfect for getting started' 
-                  : 'Best for power users and professionals'
+                {isFree
+                  ? 'Hoàn hảo để bắt đầu'
+                  : 'Tốt nhất cho người dùng chuyên nghiệp'
                 }
               </CardDescription>
               
@@ -159,7 +159,7 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
               <Separator />
 
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Features included:</h4>
+                <h4 className="font-medium text-sm">Tính năng bao gồm:</h4>
                 {plan.features.map((feature) => (
                   <div key={feature} className="flex items-center gap-2 text-sm">
                     <Check className="w-4 h-4 text-green-500" />
@@ -173,27 +173,27 @@ export const PricingPlans: React.FC<PricingPlansProps> = ({
             <CardFooter className="flex flex-col gap-2">
               {isCurrentPlan ? (
                 <Button disabled className="w-full">
-                  Current Plan
+                  Gói Hiện Tại
                 </Button>
               ) : (
                 <>
-                  <Button 
+                  <Button
                     onClick={() => handleSelectPlan(plan.id)}
                     className="w-full"
                     variant={isPro ? 'default' : 'outline'}
                     disabled={!user}
                   >
-                    {!user ? 'Login Required' : isFree ? 'Select Free Plan' : 'Upgrade to Pro'}
+                    {!user ? 'Cần Đăng Nhập' : isFree ? 'Chọn Gói Miễn Phí' : 'Nâng Cấp Pro'}
                   </Button>
-                  
+
                   {showTestPayment && user && process.env.NODE_ENV === 'development' && (
-                    <Button 
+                    <Button
                       onClick={() => handleTestPayment(plan.id)}
                       variant="secondary"
                       size="sm"
                       className="w-full"
                     >
-                      Test Payment (Dev Only)
+                      Thanh Toán Thử (Dev)
                     </Button>
                   )}
                 </>

@@ -21,12 +21,12 @@ export const SubscriptionStatus: React.FC = () => {
   const handleCancelSubscription = async () => {
     if (!currentSubscription) return;
     
-    if (confirm('Are you sure you want to cancel your subscription? You will lose access to Pro features at the end of your billing period.')) {
+    if (confirm('Bạn có chắc chắn muốn hủy đăng ký? Bạn sẽ mất quyền truy cập vào các tính năng Pro vào cuối chu kỳ thanh toán.')) {
       try {
         await cancelSubscription(currentSubscription.id);
-        toast.success('Subscription cancelled successfully');
+        toast.success('Hủy đăng ký thành công');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to cancel subscription');
+        toast.error(error instanceof Error ? error.message : 'Không thể hủy đăng ký');
       }
     }
   };
@@ -84,19 +84,19 @@ export const SubscriptionStatus: React.FC = () => {
             {isPro() ? (
               <>
                 <Crown className="w-5 h-5 text-primary" />
-                Current Subscription
+                Đăng Ký Hiện Tại
               </>
             ) : (
               <>
                 <Zap className="w-5 h-5" />
-                Free Plan
+                Gói Miễn Phí
               </>
             )}
           </CardTitle>
           <CardDescription>
-            {currentSubscription 
-              ? 'Your subscription details and status'
-              : 'You are currently on the free plan'
+            {currentSubscription
+              ? 'Chi tiết và trạng thái đăng ký của bạn'
+              : 'Bạn hiện đang sử dụng gói miễn phí'
             }
           </CardDescription>
         </CardHeader>
@@ -105,7 +105,7 @@ export const SubscriptionStatus: React.FC = () => {
           {currentSubscription ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="font-medium">Plan:</span>
+                <span className="font-medium">Gói:</span>
                 <div className="flex items-center gap-2">
                   <span>{currentSubscription.plan?.name}</span>
                   <Badge className={getStatusColor(currentSubscription.status)}>
@@ -116,12 +116,12 @@ export const SubscriptionStatus: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="font-medium">Price:</span>
-                <span>{currentSubscription.plan?.displayPrice}/month</span>
+                <span className="font-medium">Giá:</span>
+                <span>{currentSubscription.plan?.displayPrice}/tháng</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="font-medium">Expires:</span>
+                <span className="font-medium">Hết hạn:</span>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   <span>{new Date(currentSubscription.expiresAt).toLocaleDateString()}</span>
@@ -130,9 +130,9 @@ export const SubscriptionStatus: React.FC = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">Days remaining:</span>
+                  <span className="font-medium">Số ngày còn lại:</span>
                   <span className={currentSubscription.daysRemaining <= 7 ? 'text-red-500 font-medium' : ''}>
-                    {currentSubscription.daysRemaining} days
+                    {currentSubscription.daysRemaining} ngày
                   </span>
                 </div>
                 
@@ -145,20 +145,20 @@ export const SubscriptionStatus: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="font-medium">Auto-renew:</span>
+                <span className="font-medium">Tự động gia hạn:</span>
                 <Badge variant={currentSubscription.autoRenew ? 'default' : 'secondary'}>
-                  {currentSubscription.autoRenew ? 'Enabled' : 'Disabled'}
+                  {currentSubscription.autoRenew ? 'Bật' : 'Tắt'}
                 </Badge>
               </div>
 
               {currentSubscription.status === 'active' && (
                 <div className="pt-4 border-t">
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     size="sm"
                     onClick={handleCancelSubscription}
                   >
-                    Cancel Subscription
+                    Hủy Đăng Ký
                   </Button>
                 </div>
               )}
@@ -166,10 +166,10 @@ export const SubscriptionStatus: React.FC = () => {
           ) : (
             <div className="text-center py-4">
               <p className="text-muted-foreground mb-4">
-                You are currently using the free plan with basic features.
+                Bạn hiện đang sử dụng gói miễn phí với các tính năng cơ bản.
               </p>
               <Button>
-                Upgrade to Pro
+                Nâng Cấp Pro
               </Button>
             </div>
           )}
@@ -180,9 +180,9 @@ export const SubscriptionStatus: React.FC = () => {
       {limits && (
         <Card>
           <CardHeader>
-            <CardTitle>Usage Limits</CardTitle>
+            <CardTitle>Giới Hạn Sử Dụng</CardTitle>
             <CardDescription>
-              Your current plan limits and features
+              Giới hạn và tính năng của gói hiện tại
             </CardDescription>
           </CardHeader>
           
@@ -193,31 +193,31 @@ export const SubscriptionStatus: React.FC = () => {
                   {limits.maxDownloadsPerDay}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Downloads per day
+                  Lượt tải/ngày
                 </div>
               </div>
-              
+
               <div className="text-center p-4 border rounded-lg">
                 <div className="text-2xl font-bold text-primary">
                   {limits.maxConcurrentStreams}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Concurrent streams
+                  Stream đồng thời
                 </div>
               </div>
-              
+
               <div className="text-center p-4 border rounded-lg">
                 <div className="text-2xl font-bold text-primary">
                   {limits.maxQuality}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Max quality
+                  Chất lượng tối đa
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h4 className="font-medium">Available Features:</h4>
+              <h4 className="font-medium">Tính Năng Có Sẵn:</h4>
               <div className="flex flex-wrap gap-2">
                 {limits.features.map((feature) => (
                   <Badge key={feature} variant="secondary">
