@@ -64,10 +64,14 @@ WORKDIR /app
 RUN addgroup -g 1001 -S appuser && \
     adduser -S appuser -u 1001 -G appuser
 
-# Copy production dependencies only
+# Copy production dependencies to root node_modules (for backend)
 COPY --from=prod-deps --chown=appuser:appuser /app/node_modules ./node_modules
+
+# Copy built backend
 COPY --from=builder --chown=appuser:appuser /app/backend/build ./backend/build
-COPY --from=builder --chown=appuser:appuser /app/backend/package.json ./backend/
+COPY --from=builder --chown=appuser:appuser /app/backend/package.json ./backend/package.json
+
+# Copy built frontend (Next.js standalone includes its own node_modules)
 COPY --from=builder --chown=appuser:appuser /app/frontend/.next/standalone ./frontend/
 COPY --from=builder --chown=appuser:appuser /app/frontend/.next/static ./frontend/.next/static
 COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/public
