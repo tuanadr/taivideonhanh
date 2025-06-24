@@ -101,6 +101,9 @@ export default function Home() {
   const handleDownload = async (format_id: string, title: string, ext: string) => {
     setDownloadingFormat(format_id);
     toast.info("Đang chuẩn bị tải xuống...");
+
+    console.log('Download request:', { url, format_id, title, ext });
+
     try {
       const response = await makeAuthenticatedRequest("/api/download", {
         method: "POST",
@@ -108,16 +111,33 @@ export default function Home() {
         body: JSON.stringify({ url, format_id, title, ext }),
       });
 
+      console.log('Download response status:', response.status, response.statusText);
+
       if (!response.ok) {
         const contentType = response.headers.get("content-type");
         let errorDetails = "Tải video thất bại";
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          const errorData = await response.json();
-          errorDetails = errorData.error || errorDetails;
-        } else {
-          // Cố gắng đọc lỗi dưới dạng text nếu không phải JSON
-          errorDetails = await response.text().catch(() => "Không thể đọc chi tiết lỗi.");
+
+        try {
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            const errorData = await response.json();
+            errorDetails = errorData.error || errorDetails;
+          } else {
+            // Cố gắng đọc lỗi dưới dạng text nếu không phải JSON
+            const errorText = await response.text();
+            console.error('Error response text:', errorText);
+
+            // Check if it's HTML error page (service not reachable)
+            if (errorText.includes('Service is not reachable') || errorText.includes('<!DOCTYPE html>')) {
+              errorDetails = 'Dịch vụ backend không khả dụng. Vui lòng kiểm tra kết nối hoặc thử lại sau.';
+            } else {
+              errorDetails = errorText || errorDetails;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing response:', parseError);
+          errorDetails = `Lỗi server (${response.status}): Không thể kết nối đến dịch vụ backend.`;
         }
+
         throw new Error(errorDetails);
       }
 
@@ -134,7 +154,37 @@ export default function Home() {
       toast.success("Tải video thành công!");
 
     } catch (error: unknown) {
+      console.error('Download error:', error);
       const errorMessage = error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định.";
+
+      // Try fallback endpoint if main endpoint fails
+      if (errorMessage.includes('backend không khả dụng') || errorMessage.includes('Service is not reachable')) {
+        toast.error('Backend không khả dụng. Đang thử endpoint dự phòng...');
+        try {
+          const fallbackResponse = await makeAuthenticatedRequest("/api/info/download", {
+            method: "POST",
+            body: JSON.stringify({ url, format_id, title }),
+          });
+
+          if (fallbackResponse.ok) {
+            const blob = await fallbackResponse.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            const fileName = `${title}.${ext}`.replace(/[\\/:*?"<>|]/g, '_');
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(link.href);
+
+            toast.success("Tải video thành công qua endpoint dự phòng!");
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback endpoint also failed:', fallbackError);
+        }
+      }
+
       toast.error(errorMessage);
     } finally {
       setDownloadingFormat(null);

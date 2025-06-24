@@ -55,7 +55,25 @@ app.use('/api/health', health_1.default);
 app.use('/api/info', info_1.default);
 app.use('/api/download', download_1.default);
 app.get('/', (req, res) => {
-    res.send('Backend server is running!');
+    res.json({
+        message: 'Backend server is running!',
+        timestamp: new Date().toISOString(),
+        endpoints: [
+            '/api/auth',
+            '/api/streaming',
+            '/api/info',
+            '/api/download',
+            '/api/health'
+        ]
+    });
+});
+// Debug endpoint to check download route
+app.get('/api/download/test', (req, res) => {
+    res.json({
+        message: 'Download endpoint is accessible',
+        method: 'GET',
+        timestamp: new Date().toISOString()
+    });
 });
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
