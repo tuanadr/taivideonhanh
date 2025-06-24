@@ -14,7 +14,7 @@ import {
   Trash2,
   AlertTriangle
 } from 'lucide-react';
-import { VideoAnalyzer } from '@/components/streaming/VideoAnalyzer';
+// import { VideoAnalyzer } from '@/components/streaming/VideoAnalyzer';
 import { StreamingProgress } from '@/components/streaming/StreamingProgress';
 import { Navigation } from '@/components/layout/Navigation';
 import { useStreaming } from '@/hooks/useStreaming';
@@ -32,7 +32,7 @@ export default function StreamingPage() {
     isStreaming,
     streamingProgress,
     error,
-    createStreamToken,
+    // createStreamToken,
     startStreaming,
     cancelStreaming,
     refreshStreamToken,
@@ -40,10 +40,10 @@ export default function StreamingPage() {
     clearState,
   } = useStreaming();
 
-  const handleFormatSelected = async (videoUrl: string, formatId: string, title: string) => {
-    setSelectedVideo({ url: videoUrl, formatId, title });
-    await createStreamToken(videoUrl, formatId, title);
-  };
+  // const handleFormatSelected = async (videoUrl: string, formatId: string, title: string) => {
+  //   setSelectedVideo({ url: videoUrl, formatId, title });
+  //   await createStreamToken(videoUrl, formatId, title);
+  // };
 
   const handleStartDownload = async () => {
     if (!streamToken || !selectedVideo) return;
@@ -92,15 +92,27 @@ export default function StreamingPage() {
       <Navigation />
       <div className="container mx-auto py-8 space-y-8">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Video Streaming</h1>
+        <h1 className="text-3xl font-bold">Streaming Video</h1>
         <p className="text-muted-foreground">
-          Analyze videos and download them with real-time streaming
+          Quản lý và theo dõi quá trình tải video với streaming thời gian thực
         </p>
       </div>
 
-      {/* Video Analyzer */}
+      {/* Redirect to home for video analysis */}
       {!selectedVideo && (
-        <VideoAnalyzer onFormatSelected={handleFormatSelected} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Bắt Đầu Tải Video</CardTitle>
+            <CardDescription>
+              Để phân tích và tải video, vui lòng sử dụng form tải video trên trang chủ
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => window.location.href = '/'} className="w-full">
+              Đi Đến Trang Chủ
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Selected Video & Token Management */}
@@ -229,7 +241,7 @@ export default function StreamingPage() {
               variant="outline"
               onClick={handleNewDownload}
             >
-              Start New Download
+              Bắt Đầu Tải Mới
             </Button>
           </div>
         </>
@@ -238,16 +250,16 @@ export default function StreamingPage() {
       {/* Help Section */}
       <Card>
         <CardHeader>
-          <CardTitle>How it works</CardTitle>
+          <CardTitle>Cách Hoạt Động</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>1. Enter a video URL and click &quot;Analyze&quot; to get available formats</p>
-          <p>2. Select your preferred format to create a secure stream token</p>
-          <p>3. Click &quot;Start Download&quot; to begin streaming the video directly to your device</p>
-          <p>4. Monitor the real-time progress and manage your download</p>
+          <p>1. Nhập URL video trên trang chủ và nhấn &quot;Phân Tích&quot; để lấy các định dạng có sẵn</p>
+          <p>2. Chọn định dạng ưa thích để tạo token stream bảo mật</p>
+          <p>3. Nhấn &quot;Bắt Đầu Tải&quot; để bắt đầu streaming video trực tiếp đến thiết bị của bạn</p>
+          <p>4. Theo dõi tiến trình thời gian thực và quản lý quá trình tải</p>
           <p className="text-xs mt-4 p-2 bg-muted/50 rounded">
-            <strong>Note:</strong> Stream tokens expire after 30 minutes for security.
-            You can refresh them if needed before they expire.
+            <strong>Lưu ý:</strong> Token stream hết hạn sau 30 phút để đảm bảo bảo mật.
+            Bạn có thể làm mới chúng nếu cần trước khi hết hạn.
           </p>
         </CardContent>
       </Card>

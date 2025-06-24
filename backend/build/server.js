@@ -34,6 +34,7 @@ const admin_1 = __importDefault(require("./routes/admin"));
 const legal_1 = __importDefault(require("./routes/legal"));
 const analytics_1 = __importDefault(require("./routes/analytics"));
 const health_1 = __importDefault(require("./routes/health"));
+const info_1 = __importDefault(require("./routes/info"));
 const tempDir = '/tmp';
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
@@ -50,6 +51,7 @@ app.use('/api/admin', admin_1.default);
 app.use('/api/legal', legal_1.default);
 app.use('/api/analytics', analytics_1.default);
 app.use('/api/health', health_1.default);
+app.use('/api/info', info_1.default);
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
 });
