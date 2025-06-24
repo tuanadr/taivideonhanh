@@ -23,9 +23,7 @@ import { useState } from "react";
 import Image from 'next/image';
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { AuthModal } from "@/components/auth/AuthModal";
-import { UserMenu } from "@/components/auth/UserMenu";
-import { LogIn, UserPlus } from "lucide-react";
+import { Navigation } from "@/components/layout/Navigation";
 
 interface VideoFormat {
   format_id: string;
@@ -59,8 +57,6 @@ export default function Home() {
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
 
@@ -68,8 +64,6 @@ export default function Home() {
     // Check authentication for free users
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để sử dụng tính năng này");
-      setAuthModalMode('login');
-      setAuthModalOpen(true);
       return;
     }
 
@@ -153,10 +147,7 @@ export default function Home() {
     }
   };
 
-  const openAuthModal = (mode: 'login' | 'register') => {
-    setAuthModalMode(mode);
-    setAuthModalOpen(true);
-  };
+
 
   if (authLoading) {
     return (
@@ -170,29 +161,9 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-8">
-      {/* Header with Auth */}
-      <div className="absolute top-4 right-4">
-        {isAuthenticated ? (
-          <div className="flex items-center space-x-4">
-            <div className="text-sm text-muted-foreground">
-              Xin chào, <span className="font-medium">{user?.email}</span>
-            </div>
-            <UserMenu />
-          </div>
-        ) : (
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" onClick={() => openAuthModal('login')}>
-              <LogIn className="w-4 h-4 mr-2" />
-              Đăng nhập
-            </Button>
-            <Button onClick={() => openAuthModal('register')}>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Đăng ký
-            </Button>
-          </div>
-        )}
-      </div>
+    <>
+      <Navigation />
+      <main className="flex min-h-screen flex-col items-center justify-center p-8">
 
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold">TaiVideoNhanh SaaS Platform</h1>
@@ -296,12 +267,7 @@ export default function Home() {
         </Card>
       )}
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        defaultMode={authModalMode}
-      />
-    </main>
+      </main>
+    </>
   );
 }

@@ -14,91 +14,95 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const database_1 = __importDefault(require("../config/database"));
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
-class User extends sequelize_1.Model {
-    // Instance methods
-    validatePassword(password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return bcryptjs_1.default.compare(password, this.password_hash);
-        });
+class DMCAReport extends sequelize_1.Model {
+    isPending() {
+        return this.status === 'pending';
     }
-    toJSON() {
-        const values = Object.assign({}, this.get());
-        delete values.password_hash;
-        return values;
+    isValid() {
+        return this.status === 'valid';
     }
-    updateLastLogin() {
+    markAsProcessed(adminId, status, notes) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.last_login = new Date();
+            this.status = status;
+            this.processed_by = adminId;
+            this.processed_at = new Date();
+            if (notes) {
+                this.admin_notes = notes;
+            }
             yield this.save();
-        });
-    }
-    isPro() {
-        return this.subscription_tier === 'pro';
-    }
-    isFree() {
-        return this.subscription_tier === 'free';
-    }
-    upgradeToPro() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'pro';
-            yield this.save();
-        });
-    }
-    downgradeToFree() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'free';
-            yield this.save();
-        });
-    }
-    // Static methods
-    static hashPassword(password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const saltRounds = 12;
-            return bcryptjs_1.default.hash(password, saltRounds);
-        });
-    }
-    static findByEmail(email) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.findOne({ where: { email: email.toLowerCase() } });
         });
     }
 }
-User.init({
+DMCAReport.init({
     id: {
         type: sequelize_1.DataTypes.UUID,
         defaultValue: sequelize_1.DataTypes.UUIDV4,
         primaryKey: true,
     },
-    email: {
+    reporter_name: {
         type: sequelize_1.DataTypes.STRING,
         allowNull: false,
-        unique: true,
+    },
+    reporter_email: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
         validate: {
             isEmail: true,
         },
-        set(value) {
-            this.setDataValue('email', value.toLowerCase());
-        },
     },
-    password_hash: {
+    reporter_address: {
+        type: sequelize_1.DataTypes.TEXT,
+        allowNull: false,
+    },
+    copyright_owner: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    copyrighted_work_description: {
+        type: sequelize_1.DataTypes.TEXT,
+        allowNull: false,
+    },
+    infringing_url: {
         type: sequelize_1.DataTypes.STRING,
         allowNull: false,
         validate: {
-            len: [60, 60], // bcrypt hash length
+            isUrl: true,
         },
     },
-    subscription_tier: {
-        type: sequelize_1.DataTypes.ENUM('free', 'pro'),
+    infringing_content_description: {
+        type: sequelize_1.DataTypes.TEXT,
         allowNull: false,
-        defaultValue: 'free',
     },
-    email_verified: {
+    good_faith_statement: {
         type: sequelize_1.DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
     },
-    last_login: {
+    accuracy_statement: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+    },
+    signature: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: false,
+    },
+    status: {
+        type: sequelize_1.DataTypes.ENUM('pending', 'under_review', 'valid', 'invalid', 'resolved'),
+        allowNull: false,
+        defaultValue: 'pending',
+    },
+    admin_notes: {
+        type: sequelize_1.DataTypes.TEXT,
+        allowNull: true,
+    },
+    processed_by: {
+        type: sequelize_1.DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'admins',
+            key: 'id',
+        },
+    },
+    processed_at: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: true,
     },
@@ -114,16 +118,23 @@ User.init({
     },
 }, {
     sequelize: database_1.default,
-    modelName: 'User',
-    tableName: 'users',
+    tableName: 'dmca_reports',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
         {
-            unique: true,
-            fields: ['email'],
+            fields: ['status'],
+        },
+        {
+            fields: ['reporter_email'],
+        },
+        {
+            fields: ['processed_by'],
+        },
+        {
+            fields: ['created_at'],
         },
     ],
 });
-exports.default = User;
+exports.default = DMCAReport;

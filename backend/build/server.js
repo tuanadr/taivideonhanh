@@ -15,30 +15,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const database_1 = __importDefault(require("./config/database"));
 const cors_1 = __importDefault(require("cors"));
-const child_process_1 = require("child_process");
-const content_disposition_1 = __importDefault(require("content-disposition"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const uuid_1 = require("uuid");
 // Import services
 const queueService_1 = require("./services/queueService");
 const performanceService_1 = require("./services/performanceService");
 const redis_1 = require("./config/redis");
+const subscriptionService_1 = __importDefault(require("./services/subscriptionService"));
+const adminService_1 = __importDefault(require("./services/adminService"));
+const legalService_1 = __importDefault(require("./services/legalService"));
 // Import models to ensure they are registered
 require("./models");
 // Import routes
 const auth_1 = __importDefault(require("./routes/auth"));
 const streaming_1 = __importDefault(require("./routes/streaming"));
 const monitoring_1 = __importDefault(require("./routes/monitoring"));
+const subscription_1 = __importDefault(require("./routes/subscription"));
+const webhook_1 = __importDefault(require("./routes/webhook"));
+const admin_1 = __importDefault(require("./routes/admin"));
+const legal_1 = __importDefault(require("./routes/legal"));
+const analytics_1 = __importDefault(require("./routes/analytics"));
+const health_1 = __importDefault(require("./routes/health"));
 const tempDir = '/tmp';
 const app = (0, express_1.default)();
 const port = process.env.PORT || 5000;
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Webhook routes (before JSON parsing for Stripe)
+app.use('/api/webhook', express_1.default.raw({ type: 'application/json' }), webhook_1.default);
 // Routes
 app.use('/api/auth', auth_1.default);
 app.use('/api/streaming', streaming_1.default);
 app.use('/api/monitoring', monitoring_1.default);
+app.use('/api/subscription', subscription_1.default);
+app.use('/api/admin', admin_1.default);
+app.use('/api/legal', legal_1.default);
+app.use('/api/analytics', analytics_1.default);
+app.use('/api/health', health_1.default);
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
 });
@@ -51,6 +62,15 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         // Initialize queue workers
         yield queueService_1.QueueService.initializeWorkers();
         console.log('Queue workers initialized successfully.');
+        // Initialize default subscription plans
+        yield subscriptionService_1.default.initializeDefaultPlans();
+        console.log('Default subscription plans initialized.');
+        // Initialize default admin user
+        yield adminService_1.default.initializeDefaultAdmin();
+        console.log('Default admin user initialized.');
+        // Initialize default legal documents
+        yield legalService_1.default.initializeDefaultLegalDocuments();
+        console.log('Default legal documents initialized.');
         // Start performance monitoring
         setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
             yield performanceService_1.PerformanceService.storeMetrics();
@@ -100,113 +120,3 @@ process.on('unhandledRejection', (reason, promise) => {
     gracefulShutdown('unhandledRejection');
 });
 startServer();
-app.post('/api/info', (req, res) => {
-    const { url } = req.body;
-    if (!url) {
-        return res.status(400).send({ error: 'URL is required' });
-    }
-    const ytdlp = (0, child_process_1.spawn)('yt-dlp', ['--dump-json', url]);
-    let jsonData = '';
-    let errorData = '';
-    ytdlp.stdout.on('data', (data) => {
-        jsonData += data.toString();
-    });
-    ytdlp.stderr.on('data', (data) => {
-        errorData += data.toString();
-    });
-    ytdlp.on('close', (code) => {
-        if (code !== 0) {
-            console.error(`yt-dlp process exited with code ${code}`);
-            console.error(`stderr: ${errorData}`);
-            return res.status(500).send({ error: 'Failed to fetch video info', details: errorData });
-        }
-        try {
-            const info = JSON.parse(jsonData);
-            res.send({
-                title: info.title,
-                thumbnail: info.thumbnail,
-                formats: info.formats.map((f) => ({
-                    format_id: f.format_id,
-                    resolution: f.resolution || null,
-                    ext: f.ext,
-                    fps: f.fps,
-                    acodec: f.acodec,
-                    vcodec: f.vcodec,
-                    filesize: f.filesize,
-                    format_note: f.format_note
-                })),
-            });
-        }
-        catch (parseError) {
-            console.error('Error parsing yt-dlp output:', parseError);
-            res.status(500).send({ error: 'Failed to parse video info' });
-        }
-    });
-});
-app.post('/api/download', (req, res) => {
-    const { url, format_id, title, ext } = req.body;
-    if (!url || !format_id) {
-        return res.status(400).send({ error: 'URL and format_id are required' });
-    }
-    const fileName = title ? `${title}.${ext || 'mp4'}` : 'video.mp4';
-    const tempFileName = `${(0, uuid_1.v4)()}.mp4`;
-    const tempFilePath = path_1.default.join(tempDir, tempFileName);
-    const formatSelection = `${format_id}+bestaudio/best`;
-    const args = ['-f', formatSelection, '--merge-output-format', 'mp4', '-o', tempFilePath, url, '--verbose'];
-    console.log(`Running yt-dlp with args: ${args.join(' ')}`);
-    const ytdlp = (0, child_process_1.spawn)('yt-dlp', args);
-    let errorData = '';
-    ytdlp.stderr.on('data', (data) => {
-        errorData += data.toString();
-        console.error(`yt-dlp stderr: ${data}`);
-    });
-    ytdlp.on('close', (code) => {
-        console.log(`yt-dlp process exited with code ${code}.`);
-        if (code !== 0) {
-            console.error(`yt-dlp failed. Stderr: ${errorData}`);
-            if (fs_1.default.existsSync(tempFilePath)) {
-                fs_1.default.unlinkSync(tempFilePath);
-            }
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Download process failed', details: errorData });
-            }
-            return;
-        }
-        if (fs_1.default.existsSync(tempFilePath)) {
-            fs_1.default.readFile(tempFilePath, (err, data) => {
-                if (err) {
-                    console.error('Error reading temp file:', err);
-                    if (!res.headersSent) {
-                        res.status(500).json({ error: 'Failed to read downloaded file' });
-                    }
-                    fs_1.default.unlinkSync(tempFilePath); // Clean up
-                    return;
-                }
-                res.setHeader('Content-Disposition', (0, content_disposition_1.default)(fileName));
-                res.setHeader('Content-Type', 'application/octet-stream');
-                res.setHeader('Content-Length', data.length);
-                res.send(data);
-                fs_1.default.unlink(tempFilePath, (unlinkErr) => {
-                    if (unlinkErr)
-                        console.error('Error deleting temp file:', unlinkErr);
-                    else
-                        console.log('Temp file deleted successfully.');
-                });
-            });
-        }
-        else {
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Downloaded file not found' });
-            }
-        }
-    });
-    ytdlp.on('error', (err) => {
-        console.error('Failed to start yt-dlp process:', err);
-        if (fs_1.default.existsSync(tempFilePath)) {
-            fs_1.default.unlinkSync(tempFilePath);
-        }
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Failed to start download process', details: err.message });
-        }
-    });
-});

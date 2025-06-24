@@ -36,6 +36,29 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     return values;
   }
 
+  public async updateLastLogin(): Promise<void> {
+    this.last_login = new Date();
+    await this.save();
+  }
+
+  public isPro(): boolean {
+    return this.subscription_tier === 'pro';
+  }
+
+  public isFree(): boolean {
+    return this.subscription_tier === 'free';
+  }
+
+  public async upgradeToPro(): Promise<void> {
+    this.subscription_tier = 'pro';
+    await this.save();
+  }
+
+  public async downgradeToFree(): Promise<void> {
+    this.subscription_tier = 'free';
+    await this.save();
+  }
+
   // Static methods
   public static async hashPassword(password: string): Promise<string> {
     const saltRounds = 12;

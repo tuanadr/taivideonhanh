@@ -14,93 +14,83 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const database_1 = __importDefault(require("../config/database"));
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
-class User extends sequelize_1.Model {
-    // Instance methods
-    validatePassword(password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return bcryptjs_1.default.compare(password, this.password_hash);
-        });
+class UserSubscription extends sequelize_1.Model {
+    // Helper methods
+    isActive() {
+        const now = new Date();
+        return this.status === 'active' && this.starts_at <= now && this.expires_at > now;
     }
-    toJSON() {
-        const values = Object.assign({}, this.get());
-        delete values.password_hash;
-        return values;
+    isExpired() {
+        return this.expires_at < new Date() || this.status === 'expired';
     }
-    updateLastLogin() {
+    daysRemaining() {
+        const now = new Date();
+        const diffTime = this.expires_at.getTime() - now.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    cancel() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.last_login = new Date();
+            this.status = 'cancelled';
+            this.auto_renew = false;
             yield this.save();
         });
     }
-    isPro() {
-        return this.subscription_tier === 'pro';
-    }
-    isFree() {
-        return this.subscription_tier === 'free';
-    }
-    upgradeToPro() {
+    renew(newExpiresAt) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'pro';
+            this.expires_at = newExpiresAt;
+            this.status = 'active';
             yield this.save();
-        });
-    }
-    downgradeToFree() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'free';
-            yield this.save();
-        });
-    }
-    // Static methods
-    static hashPassword(password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const saltRounds = 12;
-            return bcryptjs_1.default.hash(password, saltRounds);
-        });
-    }
-    static findByEmail(email) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.findOne({ where: { email: email.toLowerCase() } });
         });
     }
 }
-User.init({
+UserSubscription.init({
     id: {
         type: sequelize_1.DataTypes.UUID,
         defaultValue: sequelize_1.DataTypes.UUIDV4,
         primaryKey: true,
     },
-    email: {
-        type: sequelize_1.DataTypes.STRING,
+    user_id: {
+        type: sequelize_1.DataTypes.UUID,
         allowNull: false,
-        unique: true,
-        validate: {
-            isEmail: true,
-        },
-        set(value) {
-            this.setDataValue('email', value.toLowerCase());
+        references: {
+            model: 'users',
+            key: 'id',
         },
     },
-    password_hash: {
-        type: sequelize_1.DataTypes.STRING,
+    plan_id: {
+        type: sequelize_1.DataTypes.UUID,
         allowNull: false,
-        validate: {
-            len: [60, 60], // bcrypt hash length
+        references: {
+            model: 'subscription_plans',
+            key: 'id',
         },
     },
-    subscription_tier: {
-        type: sequelize_1.DataTypes.ENUM('free', 'pro'),
+    status: {
+        type: sequelize_1.DataTypes.ENUM('active', 'expired', 'cancelled', 'pending'),
         allowNull: false,
-        defaultValue: 'free',
+        defaultValue: 'pending',
     },
-    email_verified: {
+    starts_at: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: false,
+    },
+    expires_at: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: false,
+    },
+    auto_renew: {
         type: sequelize_1.DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
+        defaultValue: true,
     },
-    last_login: {
-        type: sequelize_1.DataTypes.DATE,
+    payment_method: {
+        type: sequelize_1.DataTypes.STRING,
         allowNull: true,
+    },
+    stripe_subscription_id: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+        unique: true,
     },
     created_at: {
         type: sequelize_1.DataTypes.DATE,
@@ -114,16 +104,23 @@ User.init({
     },
 }, {
     sequelize: database_1.default,
-    modelName: 'User',
-    tableName: 'users',
+    tableName: 'user_subscriptions',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
     indexes: [
         {
-            unique: true,
-            fields: ['email'],
+            fields: ['user_id'],
+        },
+        {
+            fields: ['plan_id'],
+        },
+        {
+            fields: ['status'],
+        },
+        {
+            fields: ['expires_at'],
         },
     ],
 });
-exports.default = User;
+exports.default = UserSubscription;

@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import { VideoAnalyzer } from '@/components/streaming/VideoAnalyzer';
 import { StreamingProgress } from '@/components/streaming/StreamingProgress';
+import { Navigation } from '@/components/layout/Navigation';
 import { useStreaming } from '@/hooks/useStreaming';
-// import { toast } from 'sonner'; // Removed unused import
 
 export default function StreamingPage() {
   const [selectedVideo, setSelectedVideo] = useState<{
@@ -88,7 +88,9 @@ export default function StreamingPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <>
+      <Navigation />
+      <div className="container mx-auto py-8 space-y-8">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Video Streaming</h1>
         <p className="text-muted-foreground">
@@ -249,6 +251,7 @@ export default function StreamingPage() {
           </p>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

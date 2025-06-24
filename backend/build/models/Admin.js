@@ -13,19 +13,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
-const database_1 = __importDefault(require("../config/database"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-class User extends sequelize_1.Model {
-    // Instance methods
+const database_1 = __importDefault(require("../config/database"));
+class Admin extends sequelize_1.Model {
+    // Helper methods
     validatePassword(password) {
         return __awaiter(this, void 0, void 0, function* () {
-            return bcryptjs_1.default.compare(password, this.password_hash);
+            return yield bcryptjs_1.default.compare(password, this.password_hash);
         });
-    }
-    toJSON() {
-        const values = Object.assign({}, this.get());
-        delete values.password_hash;
-        return values;
     }
     updateLastLogin() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -33,38 +28,25 @@ class User extends sequelize_1.Model {
             yield this.save();
         });
     }
-    isPro() {
-        return this.subscription_tier === 'pro';
+    hasPermission(permission) {
+        return this.permissions.includes(permission) || this.role === 'super_admin';
     }
-    isFree() {
-        return this.subscription_tier === 'free';
+    isSuperAdmin() {
+        return this.role === 'super_admin';
     }
-    upgradeToPro() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'pro';
-            yield this.save();
-        });
+    isAdmin() {
+        return this.role === 'admin' || this.role === 'super_admin';
     }
-    downgradeToFree() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.subscription_tier = 'free';
-            yield this.save();
-        });
+    isModerator() {
+        return this.role === 'moderator' || this.isAdmin();
     }
-    // Static methods
-    static hashPassword(password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const saltRounds = 12;
-            return bcryptjs_1.default.hash(password, saltRounds);
-        });
-    }
-    static findByEmail(email) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.findOne({ where: { email: email.toLowerCase() } });
-        });
+    toJSON() {
+        const values = Object.assign({}, this.get());
+        delete values.password_hash;
+        return values;
     }
 }
-User.init({
+Admin.init({
     id: {
         type: sequelize_1.DataTypes.UUID,
         defaultValue: sequelize_1.DataTypes.UUIDV4,
@@ -77,26 +59,25 @@ User.init({
         validate: {
             isEmail: true,
         },
-        set(value) {
-            this.setDataValue('email', value.toLowerCase());
-        },
     },
     password_hash: {
         type: sequelize_1.DataTypes.STRING,
         allowNull: false,
-        validate: {
-            len: [60, 60], // bcrypt hash length
-        },
     },
-    subscription_tier: {
-        type: sequelize_1.DataTypes.ENUM('free', 'pro'),
+    role: {
+        type: sequelize_1.DataTypes.ENUM('super_admin', 'admin', 'moderator'),
         allowNull: false,
-        defaultValue: 'free',
+        defaultValue: 'moderator',
     },
-    email_verified: {
+    permissions: {
+        type: sequelize_1.DataTypes.JSON,
+        allowNull: false,
+        defaultValue: [],
+    },
+    is_active: {
         type: sequelize_1.DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false,
+        defaultValue: true,
     },
     last_login: {
         type: sequelize_1.DataTypes.DATE,
@@ -114,16 +95,21 @@ User.init({
     },
 }, {
     sequelize: database_1.default,
-    modelName: 'User',
-    tableName: 'users',
+    tableName: 'admins',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-    indexes: [
-        {
-            unique: true,
-            fields: ['email'],
-        },
-    ],
+    hooks: {
+        beforeCreate: (admin) => __awaiter(void 0, void 0, void 0, function* () {
+            if (admin.password_hash) {
+                admin.password_hash = yield bcryptjs_1.default.hash(admin.password_hash, 12);
+            }
+        }),
+        beforeUpdate: (admin) => __awaiter(void 0, void 0, void 0, function* () {
+            if (admin.changed('password_hash')) {
+                admin.password_hash = yield bcryptjs_1.default.hash(admin.password_hash, 12);
+            }
+        }),
+    },
 });
-exports.default = User;
+exports.default = Admin;

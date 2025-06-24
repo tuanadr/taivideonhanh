@@ -2,23 +2,26 @@
 const nextConfig = {
   // Enable standalone output for Docker optimization
   output: 'standalone',
-  
-  // Disable telemetry for faster builds
-  telemetry: false,
-  
+
   // Optimize images
   images: {
-    domains: ['i.ytimg.com', 'img.youtube.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
+    ],
     unoptimized: false,
   },
-  
+
   // Experimental features for better performance
   experimental: {
-    // Enable SWC minification for faster builds
-    swcMinify: true,
-    
-    // Optimize CSS
-    optimizeCss: true,
+    // Optimize CSS - disabled due to critters issue
+    // optimizeCss: true,
   },
   
   // Webpack optimizations
