@@ -29,6 +29,7 @@ import legalRoutes from './routes/legal';
 import analyticsRoutes from './routes/analytics';
 import healthRoutes from './routes/health';
 import infoRoutes from './routes/info';
+import downloadRoutes from './routes/download';
 
 const tempDir = '/tmp';
 
@@ -51,6 +52,7 @@ app.use('/api/legal', legalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/info', infoRoutes);
+app.use('/api/download', downloadRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Backend server is running!');

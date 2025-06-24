@@ -58,12 +58,7 @@ export const Navigation: React.FC = () => {
                     </Button>
                   </Link>
                   
-                  <Link href="/streaming">
-                    <Button variant="ghost" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Streaming
-                    </Button>
-                  </Link>
+
                   
                   <Link href="/subscription">
                     <Button variant="ghost" size="sm">
@@ -134,11 +129,7 @@ export const Navigation: React.FC = () => {
                   </Button>
                 </Link>
                 
-                <Link href="/streaming">
-                  <Button variant="ghost" size="sm">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </Link>
+
                 
                 <Link href="/subscription">
                   <Button variant="ghost" size="sm">
