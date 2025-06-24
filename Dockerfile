@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     ffmpeg \
     nginx \
     supervisor \
+    wget \
     && pip3 install --break-system-packages yt-dlp
 
 # 2. Dependencies stage
@@ -58,83 +59,9 @@ COPY --from=builder --chown=appuser:appuser /app/frontend/.next/standalone ./fro
 COPY --from=builder --chown=appuser:appuser /app/frontend/.next/static ./frontend/.next/static
 COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/public
 
-# Create nginx config for internal routing
-RUN cat > /etc/nginx/nginx.conf << 'EOF'
-events {
-    worker_connections 1024;
-}
-
-http {
-    upstream backend {
-        server 127.0.0.1:5000;
-    }
-    
-    upstream frontend {
-        server 127.0.0.1:3000;
-    }
-    
-    server {
-        listen 80;
-        
-        # API routes to backend
-        location /api/ {
-            proxy_pass http://backend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-        
-        # Everything else to frontend
-        location / {
-            proxy_pass http://frontend;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-}
-EOF
-
-# Create supervisor config
-RUN cat > /etc/supervisord.conf << 'EOF'
-[supervisord]
-nodaemon=true
-user=root
-
-[program:backend]
-command=node backend/build/server.js
-directory=/app
-user=appuser
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:frontend]
-command=node frontend/server.js
-directory=/app
-user=appuser
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-environment=PORT=3000,HOSTNAME=0.0.0.0
-
-[program:nginx]
-command=nginx -g "daemon off;"
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
+# Copy configuration files
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisord.conf /etc/supervisord.conf
 
 # Expose port 80 (nginx sẽ route internally)
 EXPOSE 80

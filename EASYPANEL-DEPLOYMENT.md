@@ -77,14 +77,14 @@ Copy các biến môi trường từ file `.env.easypanel` được tạo:
 # Application
 NODE_ENV=production
 
-# Database
-DB_HOST=taivideonhanh-db
-DB_USER=user
+# Database (EasyPanel format)
+DB_HOST=taivideonhanh_postgres
+DB_USER=postgres
 DB_PASSWORD=[password từ PostgreSQL service]
-DB_NAME=taivideonhanh
+DB_NAME=postgres
 
-# Redis
-REDIS_URL=redis://taivideonhanh-redis:6379
+# Redis (EasyPanel format)
+REDIS_URL=redis://redis:6379
 
 # JWT Secrets (TẠO MỚI!)
 JWT_ACCESS_SECRET=[64 ký tự ngẫu nhiên]
