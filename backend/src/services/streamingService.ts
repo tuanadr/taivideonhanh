@@ -432,12 +432,14 @@ class StreamingService {
       if (cookieAuthUsed) {
         return 'YouTube yêu cầu xác thực nâng cao. Cookies hiện tại không đủ quyền hoặc đã hết hạn. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
       } else {
-        return 'YouTube yêu cầu xác thực. Vui lòng thử video khác hoặc kiểm tra URL.';
+        return 'YouTube yêu cầu xác thực cookies. Hệ thống đang cố gắng các phương pháp khác, vui lòng thử lại.';
       }
-    } else if (isYouTube && errorData.includes('cookies')) {
-      return 'Lỗi xác thực YouTube. Hệ thống đang cố gắng khắc phục, vui lòng thử lại sau.';
+    } else if (isYouTube && (errorData.includes('cookies') || errorData.includes('bot'))) {
+      return 'YouTube đang yêu cầu xác thực. Hệ thống sẽ thử các phương pháp khác để tải video.';
     } else if (isYouTube && errorData.includes('HTTP Error 403')) {
       return 'Video YouTube bị hạn chế truy cập. Vui lòng thử video khác.';
+    } else if (isYouTube && errorData.includes('Video unavailable')) {
+      return 'Video YouTube không khả dụng. Có thể video đã bị xóa hoặc bị hạn chế.';
     } else if (isTikTok && errorData.includes('Unable to extract')) {
       return 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
     } else if (errorData.includes('Video unavailable')) {
@@ -745,11 +747,11 @@ class StreamingService {
       console.log('First attempt failed, trying fallback methods...');
 
       if (isYouTube) {
-        // YouTube fallback: try with different extractor args
+        // YouTube enhanced fallback: try multiple strategies
         try {
-          return await this.getVideoInfoYouTubeFallback(url);
+          return await this.getVideoInfoWithEnhancedFallback(url);
         } catch (fallbackError) {
-          console.error('YouTube fallback also failed:', fallbackError);
+          console.error('All YouTube fallback strategies failed:', fallbackError);
           throw error; // Throw original error
         }
       } else if (isTikTok) {
@@ -764,6 +766,44 @@ class StreamingService {
 
       throw error;
     }
+  }
+
+  /**
+   * Enhanced YouTube fallback with multiple strategies
+   */
+  private static async getVideoInfoWithEnhancedFallback(url: string): Promise<VideoInfo> {
+    console.log('Trying enhanced fallback strategies...');
+
+    const fallbackStrategies = [
+      {
+        name: 'Standard fallback with cookies',
+        method: () => this.getVideoInfoYouTubeFallback(url)
+      },
+      {
+        name: 'No extractor args',
+        method: () => this.tryBasicExtraction(url)
+      },
+      {
+        name: 'Different user agent',
+        method: () => this.tryWithDifferentUserAgent(url)
+      }
+    ];
+
+    for (const strategy of fallbackStrategies) {
+      try {
+        console.log(`🔄 Trying strategy: ${strategy.name}`);
+        const result = await strategy.method();
+        console.log(`✅ Success with strategy: ${strategy.name}`);
+        return result;
+      } catch (error) {
+        console.log(`❌ Strategy failed: ${strategy.name} - ${error.message}`);
+      }
+
+      // Wait between attempts
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    throw new Error('All enhanced fallback strategies failed');
   }
 
   /**
@@ -904,6 +944,141 @@ class StreamingService {
         ytdlp.kill('SIGTERM');
         reject(new Error('TikTok fallback timeout'));
       }, 45000);
+    });
+  }
+
+  /**
+   * Try basic extraction without special args
+   */
+  private static async tryBasicExtraction(url: string): Promise<VideoInfo> {
+    return new Promise((resolve, reject) => {
+      const ytdlpArgs = [
+        '--dump-json',
+        '--no-warnings',
+        '--no-check-certificates',
+        '--ignore-errors',
+        '--user-agent', this.getRandomUserAgent(),
+        url
+      ];
+
+      console.log('Basic extraction args:', ytdlpArgs);
+      const ytdlp = spawn('yt-dlp', ytdlpArgs);
+
+      let jsonData = '';
+      let errorData = '';
+
+      ytdlp.stdout.on('data', (data) => {
+        jsonData += data.toString();
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Basic extraction failed: ${errorData}`));
+          return;
+        }
+
+        try {
+          const info = JSON.parse(jsonData);
+          resolve({
+            title: info.title || 'Unknown Title',
+            thumbnail: info.thumbnail || '',
+            duration: info.duration,
+            description: info.description,
+            uploader: info.uploader,
+            upload_date: info.upload_date,
+            formats: info.formats?.map((f: any) => ({
+              format_id: f.format_id,
+              ext: f.ext,
+              resolution: f.resolution,
+              fps: f.fps,
+              filesize: f.filesize,
+              acodec: f.acodec,
+              vcodec: f.vcodec,
+              format_note: f.format_note,
+              url: f.url,
+            })) || [],
+          });
+        } catch (parseError) {
+          reject(new Error('Failed to parse basic extraction result'));
+        }
+      });
+
+      setTimeout(() => {
+        ytdlp.kill('SIGTERM');
+        reject(new Error('Basic extraction timeout'));
+      }, 30000);
+    });
+  }
+
+  /**
+   * Try extraction with different user agent
+   */
+  private static async tryWithDifferentUserAgent(url: string): Promise<VideoInfo> {
+    return new Promise((resolve, reject) => {
+      const ytdlpArgs = [
+        '--dump-json',
+        '--no-warnings',
+        '--no-check-certificates',
+        '--ignore-errors',
+        '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        '--extractor-args', 'youtube:player_client=web',
+        url
+      ];
+
+      console.log('Different user-agent args:', ytdlpArgs);
+      const ytdlp = spawn('yt-dlp', ytdlpArgs);
+
+      let jsonData = '';
+      let errorData = '';
+
+      ytdlp.stdout.on('data', (data) => {
+        jsonData += data.toString();
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Different user-agent extraction failed: ${errorData}`));
+          return;
+        }
+
+        try {
+          const info = JSON.parse(jsonData);
+          resolve({
+            title: info.title || 'Unknown Title',
+            thumbnail: info.thumbnail || '',
+            duration: info.duration,
+            description: info.description,
+            uploader: info.uploader,
+            upload_date: info.upload_date,
+            formats: info.formats?.map((f: any) => ({
+              format_id: f.format_id,
+              ext: f.ext,
+              resolution: f.resolution,
+              fps: f.fps,
+              filesize: f.filesize,
+              acodec: f.acodec,
+              vcodec: f.vcodec,
+              format_note: f.format_note,
+              url: f.url,
+            })) || [],
+          });
+        } catch (parseError) {
+          reject(new Error('Failed to parse different user-agent result'));
+        }
+      });
+
+      setTimeout(() => {
+        ytdlp.kill('SIGTERM');
+        reject(new Error('Different user-agent extraction timeout'));
+      }, 30000);
     });
   }
 }
