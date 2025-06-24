@@ -34,27 +34,27 @@ const nextConfig = {
     // optimizeCss: true,
   },
   
-  // Webpack optimizations
-  webpack: (config, { dev, isServer }) => {
-    // Optimize for production builds
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-          },
-        },
-      };
-    }
-    
-    return config;
-  },
+  // Webpack optimizations - temporarily disabled due to build issues
+  // webpack: (config, { dev, isServer }) => {
+  //   // Optimize for production builds
+  //   if (!dev) {
+  //     config.optimization = {
+  //       ...config.optimization,
+  //       splitChunks: {
+  //         chunks: 'all',
+  //         cacheGroups: {
+  //           vendor: {
+  //             test: /[\\/]node_modules[\\/]/,
+  //             name: 'vendors',
+  //             chunks: 'all',
+  //           },
+  //         },
+  //       },
+  //     };
+  //   }
+  //
+  //   return config;
+  // },
   
   // Reduce bundle size
   compiler: {
