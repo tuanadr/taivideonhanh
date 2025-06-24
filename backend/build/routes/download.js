@@ -47,29 +47,77 @@ const videoDownloadValidation = [
         .withMessage('Extension must be a string')
 ];
 /**
+ * GET /api/download/test
+ * Test endpoint to check if download route is accessible
+ */
+router.get('/test', (req, res) => {
+    res.json({
+        message: 'Download route is working',
+        timestamp: new Date().toISOString(),
+        method: 'GET'
+    });
+});
+/**
  * POST /api/download
  * Download video with selected format
  */
 router.post('/', auth_1.authenticate, videoDownloadValidation, validateRequest, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const startTime = Date.now();
     try {
         const { url, format_id, title, ext } = req.body;
-        console.log('Download request:', { url, format_id, title, ext });
+        console.log('Download request received:', {
+            url,
+            format_id,
+            title,
+            ext,
+            timestamp: new Date().toISOString(),
+            userAgent: req.headers['user-agent']
+        });
+        // Validate required parameters
+        if (!url) {
+            return res.status(400).json({
+                error: 'URL is required',
+                code: 'MISSING_URL'
+            });
+        }
+        if (!format_id) {
+            return res.status(400).json({
+                error: 'Format ID is required',
+                code: 'MISSING_FORMAT_ID'
+            });
+        }
         // If no specific format provided, use best format with audio+video
         const finalFormatId = format_id || 'best[ext=mp4]';
+        console.log('Starting video stream with format:', finalFormatId);
         // Stream the video directly to the client
-        yield streamingService_1.StreamingService.streamVideo(req, res, {
+        const result = yield streamingService_1.StreamingService.streamVideo(req, res, {
             videoUrl: url,
             formatId: finalFormatId,
             title: title
         });
+        const duration = Date.now() - startTime;
+        console.log('Download completed:', {
+            success: result.success,
+            duration: `${duration}ms`,
+            bytesStreamed: result.bytesStreamed
+        });
     }
     catch (error) {
-        console.error('Video download error:', error);
+        const duration = Date.now() - startTime;
+        console.error('Video download error:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString()
+        });
         if (!res.headersSent) {
             const errorMessage = error instanceof Error ? error.message : 'Download failed';
-            res.status(500).json({
+            const statusCode = errorMessage.includes('not found') ? 404 :
+                errorMessage.includes('timeout') ? 408 : 500;
+            res.status(statusCode).json({
                 error: errorMessage,
-                code: 'DOWNLOAD_FAILED'
+                code: 'DOWNLOAD_FAILED',
+                timestamp: new Date().toISOString()
             });
         }
     }
