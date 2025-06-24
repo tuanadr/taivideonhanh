@@ -91,7 +91,24 @@ export default function Home() {
       toast.success("Lấy thông tin video thành công!");
 
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định.";
+      console.error('Video info error:', error);
+      let errorMessage = "Đã xảy ra lỗi không xác định.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+
+        // Provide more specific error messages for common issues
+        if (errorMessage.includes('YouTube yêu cầu xác thực')) {
+          errorMessage = 'YouTube yêu cầu xác thực. Vui lòng thử video khác hoặc kiểm tra URL.';
+        } else if (errorMessage.includes('TikTok')) {
+          errorMessage = 'Không thể tải video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
+        } else if (errorMessage.includes('Video unavailable')) {
+          errorMessage = 'Video không khả dụng hoặc đã bị xóa.';
+        } else if (errorMessage.includes('Private video')) {
+          errorMessage = 'Video này ở chế độ riêng tư.';
+        }
+      }
+
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -157,9 +174,14 @@ export default function Home() {
       console.error('Download error:', error);
       const errorMessage = error instanceof Error ? error.message : "Đã xảy ra lỗi không xác định.";
 
-      // Try fallback endpoint if main endpoint fails
-      if (errorMessage.includes('backend không khả dụng') || errorMessage.includes('Service is not reachable')) {
-        toast.error('Backend không khả dụng. Đang thử endpoint dự phòng...');
+      // Enhanced fallback logic with better error detection
+      const shouldTryFallback = errorMessage.includes('backend không khả dụng') ||
+                               errorMessage.includes('Service is not reachable') ||
+                               errorMessage.includes('YouTube yêu cầu xác thực') ||
+                               errorMessage.includes('TikTok');
+
+      if (shouldTryFallback) {
+        toast.error('Đang thử phương pháp tải xuống dự phòng...');
         try {
           const fallbackResponse = await makeAuthenticatedRequest("/api/info/download", {
             method: "POST",
@@ -177,8 +199,12 @@ export default function Home() {
             document.body.removeChild(link);
             window.URL.revokeObjectURL(link.href);
 
-            toast.success("Tải video thành công qua endpoint dự phòng!");
+            toast.success("Tải video thành công qua phương pháp dự phòng!");
             return;
+          } else {
+            // Try to get error from fallback response
+            const fallbackErrorData = await fallbackResponse.json().catch(() => ({}));
+            console.error('Fallback response error:', fallbackErrorData);
           }
         } catch (fallbackError) {
           console.error('Fallback endpoint also failed:', fallbackError);

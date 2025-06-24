@@ -63,9 +63,11 @@ router.post('/',
   async (req: Request, res: Response) => {
     try {
       const { url } = req.body;
-      
-      // Get video information using StreamingService
-      const videoInfo = await StreamingService.getVideoInfo(url);
+
+      console.log('Getting video info for URL:', url);
+
+      // Get video information using StreamingService with fallback
+      const videoInfo = await StreamingService.getVideoInfoWithFallback(url);
       
       // Filter and format the response for frontend compatibility
       const response = {
