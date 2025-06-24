@@ -49,15 +49,37 @@ class StreamingService {
   private static readonly SUPPORTED_FORMATS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'm4a', 'mp3', 'wav'];
 
   /**
-   * Get video information using yt-dlp
+   * Get video information using yt-dlp with enhanced error handling and platform-specific optimizations
    */
   public static async getVideoInfo(url: string): Promise<VideoInfo> {
     return new Promise((resolve, reject) => {
-      const ytdlp = spawn('yt-dlp', [
+      // Detect platform for optimized arguments
+      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+      const isTikTok = url.includes('tiktok.com');
+
+      const ytdlpArgs = [
         '--dump-json',
         '--no-warnings',
-        url
-      ]);
+        '--no-check-certificates',
+        '--ignore-errors',
+      ];
+
+      // Platform-specific optimizations
+      if (isYouTube) {
+        ytdlpArgs.push(
+          '--extractor-args', 'youtube:skip=dash,hls',
+          '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        );
+      } else if (isTikTok) {
+        ytdlpArgs.push(
+          '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+        );
+      }
+
+      ytdlpArgs.push(url);
+
+      console.log('yt-dlp getVideoInfo args:', ytdlpArgs);
+      const ytdlp = spawn('yt-dlp', ytdlpArgs);
 
       let jsonData = '';
       let errorData = '';
@@ -71,8 +93,26 @@ class StreamingService {
       });
 
       ytdlp.on('close', (code) => {
+        console.log(`yt-dlp getVideoInfo exit code: ${code}`);
+        if (errorData) {
+          console.log('yt-dlp getVideoInfo stderr:', errorData);
+        }
+
         if (code !== 0) {
-          reject(new Error(`Failed to fetch video info: ${errorData}`));
+          // Enhanced error handling for specific platforms
+          let errorMessage = `Failed to fetch video info: ${errorData}`;
+
+          if (isYouTube && errorData.includes('Sign in to confirm')) {
+            errorMessage = 'YouTube yêu cầu xác thực. Video có thể bị hạn chế hoặc cần đăng nhập. Vui lòng thử video khác hoặc kiểm tra URL.';
+          } else if (isTikTok && errorData.includes('Unable to extract')) {
+            errorMessage = 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
+          } else if (errorData.includes('Video unavailable')) {
+            errorMessage = 'Video không khả dụng hoặc đã bị xóa.';
+          } else if (errorData.includes('Private video')) {
+            errorMessage = 'Video này ở chế độ riêng tư.';
+          }
+
+          reject(new Error(errorMessage));
           return;
         }
 
@@ -98,6 +138,7 @@ class StreamingService {
             })) || [],
           });
         } catch (parseError) {
+          console.error('JSON parse error:', parseError);
           reject(new Error('Failed to parse video info'));
         }
       });
@@ -106,7 +147,7 @@ class StreamingService {
       setTimeout(() => {
         ytdlp.kill('SIGTERM');
         reject(new Error('Video info extraction timeout'));
-      }, 30000);
+      }, 45000); // Increased timeout for better reliability
     });
   }
 
@@ -140,6 +181,10 @@ class StreamingService {
       // Check if selected format has audio
       const hasAudio = selectedFormat.acodec && selectedFormat.acodec !== 'none';
 
+      // Detect platform for optimized arguments
+      const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+      const isTikTok = videoUrl.includes('tiktok.com');
+
       // Prepare yt-dlp arguments with smart format selection
       let formatString;
       if (hasAudio) {
@@ -155,13 +200,34 @@ class StreamingService {
         '--output', '-',
         '--no-warnings',
         '--no-playlist',
-        '--merge-output-format', 'mp4',
-        '--audio-format', 'mp3',
-        '--embed-audio',
+        '--no-check-certificates',
+        '--ignore-errors',
       ];
 
+      // Platform-specific optimizations
+      if (isYouTube) {
+        ytdlpArgs.push(
+          '--merge-output-format', 'mp4',
+          '--audio-format', 'mp3',
+          '--embed-audio',
+          '--extractor-args', 'youtube:skip=dash,hls',
+          '--user-agent', userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        );
+      } else if (isTikTok) {
+        ytdlpArgs.push(
+          '--user-agent', userAgent || 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+        );
+      } else {
+        // Default for other platforms
+        ytdlpArgs.push(
+          '--merge-output-format', 'mp4',
+          '--audio-format', 'mp3',
+          '--embed-audio'
+        );
+      }
+
       // Add optional headers
-      if (userAgent) {
+      if (userAgent && !isYouTube && !isTikTok) {
         ytdlpArgs.push('--user-agent', userAgent);
       }
       if (referer) {
@@ -169,6 +235,7 @@ class StreamingService {
       }
 
       ytdlpArgs.push(videoUrl);
+      console.log('yt-dlp streamVideo args:', ytdlpArgs);
 
       // Set response headers
       const filename = this.sanitizeFilename(title || videoInfo.title);
@@ -219,17 +286,26 @@ class StreamingService {
         }
       });
 
-      // Handle stderr for errors
+      // Handle stderr for errors with enhanced error detection
       let errorOutput = '';
       ytdlpProcess.stderr?.on('data', (data) => {
-        errorOutput += data.toString();
+        const errorText = data.toString();
+        errorOutput += errorText;
+        console.error('yt-dlp stderr:', errorText);
+
+        // Real-time error detection for faster failure response
+        if (errorText.includes('Sign in to confirm') && isYouTube) {
+          console.error('YouTube authentication required');
+        } else if (errorText.includes('Unable to extract') && isTikTok) {
+          console.error('TikTok extraction failed');
+        }
       });
 
       // Handle process completion
       return new Promise((resolve, reject) => {
         ytdlpProcess!.on('close', (code) => {
           const duration = Date.now() - startTime;
-          
+
           if (code === 0) {
             if (!res.destroyed) {
               res.end();
@@ -241,10 +317,26 @@ class StreamingService {
             });
           } else {
             console.error('yt-dlp process failed:', errorOutput);
-            if (!res.headersSent) {
-              res.status(500).json({ error: 'Video streaming failed' });
+
+            // Enhanced error messages based on platform and error type
+            let userFriendlyError = 'Video streaming failed';
+
+            if (isYouTube && errorOutput.includes('Sign in to confirm')) {
+              userFriendlyError = 'YouTube yêu cầu xác thực. Video có thể bị hạn chế hoặc cần đăng nhập. Vui lòng thử video khác.';
+            } else if (isTikTok && errorOutput.includes('Unable to extract')) {
+              userFriendlyError = 'Không thể tải video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
+            } else if (errorOutput.includes('Video unavailable')) {
+              userFriendlyError = 'Video không khả dụng hoặc đã bị xóa.';
+            } else if (errorOutput.includes('Private video')) {
+              userFriendlyError = 'Video này ở chế độ riêng tư.';
+            } else if (errorOutput.includes('network')) {
+              userFriendlyError = 'Lỗi kết nối mạng. Vui lòng thử lại sau.';
             }
-            reject(new Error(`yt-dlp process failed with code ${code}: ${errorOutput}`));
+
+            if (!res.headersSent) {
+              res.status(500).json({ error: userFriendlyError });
+            }
+            reject(new Error(`yt-dlp process failed with code ${code}: ${userFriendlyError}`));
           }
         });
 
@@ -337,9 +429,179 @@ class StreamingService {
    */
   public static async getAvailableFormats(url: string): Promise<VideoFormat[]> {
     const videoInfo = await this.getVideoInfo(url);
-    return videoInfo.formats.filter(format => 
+    return videoInfo.formats.filter(format =>
       format.ext && this.isSupportedFormat(format.ext)
     );
+  }
+
+  /**
+   * Get video info with fallback strategies for different platforms
+   */
+  public static async getVideoInfoWithFallback(url: string): Promise<VideoInfo> {
+    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+    const isTikTok = url.includes('tiktok.com');
+
+    try {
+      // First attempt with standard method
+      return await this.getVideoInfo(url);
+    } catch (error) {
+      console.log('First attempt failed, trying fallback methods...');
+
+      if (isYouTube) {
+        // YouTube fallback: try with different extractor args
+        try {
+          return await this.getVideoInfoYouTubeFallback(url);
+        } catch (fallbackError) {
+          console.error('YouTube fallback also failed:', fallbackError);
+          throw error; // Throw original error
+        }
+      } else if (isTikTok) {
+        // TikTok fallback: try with different user agent
+        try {
+          return await this.getVideoInfoTikTokFallback(url);
+        } catch (fallbackError) {
+          console.error('TikTok fallback also failed:', fallbackError);
+          throw error; // Throw original error
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * YouTube-specific fallback method
+   */
+  private static async getVideoInfoYouTubeFallback(url: string): Promise<VideoInfo> {
+    return new Promise((resolve, reject) => {
+      const ytdlpArgs = [
+        '--dump-json',
+        '--no-warnings',
+        '--no-check-certificates',
+        '--ignore-errors',
+        '--extractor-args', 'youtube:skip=dash',
+        '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        url
+      ];
+
+      console.log('YouTube fallback yt-dlp args:', ytdlpArgs);
+      const ytdlp = spawn('yt-dlp', ytdlpArgs);
+
+      let jsonData = '';
+      let errorData = '';
+
+      ytdlp.stdout.on('data', (data) => {
+        jsonData += data.toString();
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`YouTube fallback failed: ${errorData}`));
+          return;
+        }
+
+        try {
+          const info = JSON.parse(jsonData);
+          resolve({
+            title: info.title || 'Unknown Title',
+            thumbnail: info.thumbnail || '',
+            duration: info.duration,
+            description: info.description,
+            uploader: info.uploader,
+            upload_date: info.upload_date,
+            formats: info.formats?.map((f: any) => ({
+              format_id: f.format_id,
+              ext: f.ext,
+              resolution: f.resolution,
+              fps: f.fps,
+              filesize: f.filesize,
+              acodec: f.acodec,
+              vcodec: f.vcodec,
+              format_note: f.format_note,
+              url: f.url,
+            })) || [],
+          });
+        } catch (parseError) {
+          reject(new Error('Failed to parse YouTube fallback video info'));
+        }
+      });
+
+      setTimeout(() => {
+        ytdlp.kill('SIGTERM');
+        reject(new Error('YouTube fallback timeout'));
+      }, 45000);
+    });
+  }
+
+  /**
+   * TikTok-specific fallback method
+   */
+  private static async getVideoInfoTikTokFallback(url: string): Promise<VideoInfo> {
+    return new Promise((resolve, reject) => {
+      const ytdlpArgs = [
+        '--dump-json',
+        '--no-warnings',
+        '--no-check-certificates',
+        '--ignore-errors',
+        '--user-agent', 'TikTok 26.2.0 rv:262018 (iPhone; iOS 14.4.2; en_US) Cronet',
+        url
+      ];
+
+      console.log('TikTok fallback yt-dlp args:', ytdlpArgs);
+      const ytdlp = spawn('yt-dlp', ytdlpArgs);
+
+      let jsonData = '';
+      let errorData = '';
+
+      ytdlp.stdout.on('data', (data) => {
+        jsonData += data.toString();
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        errorData += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`TikTok fallback failed: ${errorData}`));
+          return;
+        }
+
+        try {
+          const info = JSON.parse(jsonData);
+          resolve({
+            title: info.title || 'Unknown Title',
+            thumbnail: info.thumbnail || '',
+            duration: info.duration,
+            description: info.description,
+            uploader: info.uploader,
+            upload_date: info.upload_date,
+            formats: info.formats?.map((f: any) => ({
+              format_id: f.format_id,
+              ext: f.ext,
+              resolution: f.resolution,
+              fps: f.fps,
+              filesize: f.filesize,
+              acodec: f.acodec,
+              vcodec: f.vcodec,
+              format_note: f.format_note,
+              url: f.url,
+            })) || [],
+          });
+        } catch (parseError) {
+          reject(new Error('Failed to parse TikTok fallback video info'));
+        }
+      });
+
+      setTimeout(() => {
+        ytdlp.kill('SIGTERM');
+        reject(new Error('TikTok fallback timeout'));
+      }, 45000);
+    });
   }
 }
 
