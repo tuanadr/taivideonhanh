@@ -29,6 +29,7 @@ interface AuthContextType {
   refreshToken: () => Promise<boolean>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  makeAuthenticatedRequest: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -310,6 +311,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshToken,
     updateProfile,
     changePassword,
+    makeAuthenticatedRequest,
   };
 
   return (
