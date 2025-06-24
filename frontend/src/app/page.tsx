@@ -245,11 +245,6 @@ export default function Home() {
                           {getQualityBadge(format.resolution)?.label}
                         </Badge>
                       )}
-                      {format.acodec && format.acodec !== 'none' && (
-                        <Badge variant="default" className="bg-green-500">
-                          🔊 Có âm thanh
-                        </Badge>
-                      )}
                       <span className="text-sm">{format.resolution || format.format_note} - {format.ext}</span>
                     </div>
                     <Button 
