@@ -217,7 +217,8 @@ export default function Home() {
                                                     {Object.values(
                                                         videoInfo.formats
                                                             .filter(f => {
-                                                                if (f.vcodec === 'none' || f.ext !== 'mp4' || !f.resolution) return false;
+                                                                // Chỉ chọn formats có cả video và audio
+                                                                if (f.vcodec === 'none' || f.acodec === 'none' || f.ext !== 'mp4' || !f.resolution) return false;
                                                                 const height = parseInt(f.resolution.split('x')[1]);
                                                                 return height >= 720;
                                                             })
@@ -242,6 +243,11 @@ export default function Home() {
                       {getQualityBadge(format.resolution) && (
                         <Badge variant="destructive" className={`${getQualityBadge(format.resolution)?.color}`}>
                           {getQualityBadge(format.resolution)?.label}
+                        </Badge>
+                      )}
+                      {format.acodec && format.acodec !== 'none' && (
+                        <Badge variant="default" className="bg-green-500">
+                          🔊 Có âm thanh
                         </Badge>
                       )}
                       <span className="text-sm">{format.resolution || format.format_note} - {format.ext}</span>

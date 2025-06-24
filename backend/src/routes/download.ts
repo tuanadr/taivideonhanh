@@ -50,13 +50,16 @@ router.post('/',
   async (req: Request, res: Response) => {
     try {
       const { url, format_id, title, ext } = req.body;
-      
+
       console.log('Download request:', { url, format_id, title, ext });
-      
+
+      // If no specific format provided, use best format with audio+video
+      const finalFormatId = format_id || 'best[ext=mp4]';
+
       // Stream the video directly to the client
       await StreamingService.streamVideo(req, res, {
         videoUrl: url,
-        formatId: format_id,
+        formatId: finalFormatId,
         title: title
       });
       

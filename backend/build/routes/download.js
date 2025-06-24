@@ -54,10 +54,12 @@ router.post('/', auth_1.authenticate, videoDownloadValidation, validateRequest, 
     try {
         const { url, format_id, title, ext } = req.body;
         console.log('Download request:', { url, format_id, title, ext });
+        // If no specific format provided, use best format with audio+video
+        const finalFormatId = format_id || 'best[ext=mp4]';
         // Stream the video directly to the client
         yield streamingService_1.StreamingService.streamVideo(req, res, {
             videoUrl: url,
-            formatId: format_id,
+            formatId: finalFormatId,
             title: title
         });
     }
