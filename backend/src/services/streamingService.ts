@@ -12,6 +12,14 @@ interface StreamingOptions {
   referer?: string;
   bufferSize?: number;
   timeout?: number;
+  useCookies?: boolean;
+  cookiesPath?: string;
+}
+
+interface CookieAuthResult {
+  success: boolean;
+  method?: 'browser' | 'file' | 'none';
+  error?: string;
 }
 
 interface StreamingResult {
@@ -47,12 +55,165 @@ class StreamingService {
   private static readonly DEFAULT_BUFFER_SIZE = 64 * 1024; // 64KB
   private static readonly DEFAULT_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   private static readonly SUPPORTED_FORMATS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'm4a', 'mp3', 'wav'];
+  private static readonly SUPPORTED_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
+  private static readonly COOKIES_FILE_PATH = process.env.YOUTUBE_COOKIES_PATH || '/tmp/youtube-cookies.txt';
+
+  /**
+   * Detect available cookie authentication methods for YouTube
+   */
+  private static async detectCookieAuth(): Promise<CookieAuthResult> {
+    // Try browser cookie extraction first (only on platforms that support it)
+    const platform = process.platform;
+    const supportedPlatforms = ['win32', 'darwin', 'linux'];
+
+    if (supportedPlatforms.includes(platform)) {
+      for (const browser of this.SUPPORTED_BROWSERS) {
+        try {
+          const testResult = await this.testBrowserCookies(browser);
+          if (testResult.success) {
+            console.log(`✅ Cookie authentication available via ${browser}`);
+            return {
+              success: true,
+              method: 'browser',
+              error: undefined
+            };
+          } else {
+            console.log(`❌ Browser ${browser} cookies not available: ${testResult.error}`);
+          }
+        } catch (error) {
+          console.log(`❌ Browser ${browser} test failed:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+    } else {
+      console.log(`⚠️ Platform ${platform} not supported for browser cookie extraction`);
+    }
+
+    // Try cookies file if browser extraction fails
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(this.COOKIES_FILE_PATH)) {
+        console.log(`✅ Cookie file found at ${this.COOKIES_FILE_PATH}`);
+        return {
+          success: true,
+          method: 'file',
+          error: undefined
+        };
+      } else {
+        console.log(`ℹ️ Cookie file not found at ${this.COOKIES_FILE_PATH}`);
+      }
+    } catch (error) {
+      console.log(`❌ Cookie file not accessible:`, error instanceof Error ? error.message : 'Unknown error');
+    }
+
+    console.log(`ℹ️ No cookie authentication methods available, proceeding without cookies`);
+    return {
+      success: false,
+      method: 'none',
+      error: 'No cookie authentication methods available'
+    };
+  }
+
+  /**
+   * Test if browser cookies are available and working
+   */
+  private static async testBrowserCookies(browser: string): Promise<CookieAuthResult> {
+    return new Promise((resolve) => {
+      // Quick check for browser availability first
+      const testArgs = [
+        '--cookies-from-browser', browser,
+        '--dump-json',
+        '--no-warnings',
+        '--quiet',
+        '--simulate',
+        'https://www.youtube.com/watch?v=jNQXAC9IVRw' // Test with a known working video
+      ];
+
+      const ytdlp = spawn('yt-dlp', testArgs);
+      let hasOutput = false;
+      let errorOutput = '';
+
+      ytdlp.stdout.on('data', () => {
+        hasOutput = true;
+      });
+
+      ytdlp.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
+
+      ytdlp.on('close', (code) => {
+        // Analyze the error to provide better feedback
+        if (errorOutput.includes('could not find') && errorOutput.includes('cookies database')) {
+          resolve({
+            success: false,
+            method: 'browser',
+            error: `Browser ${browser} not installed or no cookies available`
+          });
+        } else if (errorOutput.includes('unsupported platform')) {
+          resolve({
+            success: false,
+            method: 'browser',
+            error: `Browser ${browser} not supported on this platform`
+          });
+        } else if (code === 0 || hasOutput) {
+          resolve({ success: true, method: 'browser' });
+        } else {
+          resolve({
+            success: false,
+            method: 'browser',
+            error: errorOutput || `Browser ${browser} test failed`
+          });
+        }
+      });
+
+      // Quick timeout for testing
+      setTimeout(() => {
+        ytdlp.kill('SIGTERM');
+        resolve({
+          success: false,
+          method: 'browser',
+          error: `Browser ${browser} test timeout`
+        });
+      }, 5000); // Reduced timeout for faster testing
+    });
+  }
+
+  /**
+   * Smart cookie authentication setup
+   */
+  private static async setupCookieAuth(ytdlpArgs: string[]): Promise<boolean> {
+    try {
+      const cookieAuth = await this.detectCookieAuth();
+
+      if (cookieAuth.success) {
+        if (cookieAuth.method === 'browser') {
+          // Try each browser until one works
+          for (const browser of this.SUPPORTED_BROWSERS) {
+            const testResult = await this.testBrowserCookies(browser);
+            if (testResult.success) {
+              ytdlpArgs.push('--cookies-from-browser', browser);
+              console.log(`🍪 Using ${browser} cookies for authentication`);
+              return true;
+            }
+          }
+        } else if (cookieAuth.method === 'file') {
+          ytdlpArgs.push('--cookies', this.COOKIES_FILE_PATH);
+          console.log(`🍪 Using cookie file for authentication`);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.log('⚠️ Cookie authentication setup failed:', error instanceof Error ? error.message : 'Unknown error');
+      return false;
+    }
+  }
 
   /**
    * Get video information using yt-dlp with enhanced error handling and platform-specific optimizations
    */
-  public static async getVideoInfo(url: string): Promise<VideoInfo> {
-    return new Promise((resolve, reject) => {
+  public static async getVideoInfo(url: string, useCookieAuth: boolean = true): Promise<VideoInfo> {
+    return new Promise(async (resolve, reject) => {
       // Detect platform for optimized arguments
       const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
       const isTikTok = url.includes('tiktok.com');
@@ -63,6 +224,12 @@ class StreamingService {
         '--no-check-certificates',
         '--ignore-errors',
       ];
+
+      // Cookie authentication for YouTube
+      let cookieAuthUsed = false;
+      if (isYouTube && useCookieAuth) {
+        cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+      }
 
       // Platform-specific optimizations
       if (isYouTube) {
@@ -103,7 +270,13 @@ class StreamingService {
           let errorMessage = `Failed to fetch video info: ${errorData}`;
 
           if (isYouTube && errorData.includes('Sign in to confirm')) {
-            errorMessage = 'YouTube yêu cầu xác thực. Video có thể bị hạn chế hoặc cần đăng nhập. Vui lòng thử video khác hoặc kiểm tra URL.';
+            if (cookieAuthUsed) {
+              errorMessage = 'YouTube yêu cầu xác thực nâng cao. Cookies hiện tại không đủ quyền. Vui lòng đăng nhập YouTube trên trình duyệt và thử lại.';
+            } else {
+              errorMessage = 'YouTube yêu cầu xác thực cookies. Vui lòng đăng nhập YouTube trên Chrome và thử lại. Nếu vẫn lỗi, hãy liên hệ hỗ trợ.';
+            }
+          } else if (isYouTube && errorData.includes('cookies')) {
+            errorMessage = 'Lỗi xác thực YouTube cookies. Vui lòng đảm bảo đã đăng nhập YouTube trên trình duyệt Chrome.';
           } else if (isTikTok && errorData.includes('Unable to extract')) {
             errorMessage = 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
           } else if (errorData.includes('Video unavailable')) {
@@ -164,10 +337,10 @@ class StreamingService {
     let ytdlpProcess: ChildProcess | null = null;
 
     try {
-      const { videoUrl, formatId, title, userAgent, referer, bufferSize = this.DEFAULT_BUFFER_SIZE, timeout = this.DEFAULT_TIMEOUT } = options;
+      const { videoUrl, formatId, title, userAgent, referer, bufferSize = this.DEFAULT_BUFFER_SIZE, timeout = this.DEFAULT_TIMEOUT, useCookies = true } = options;
 
       // Validate format
-      const videoInfo = await this.getVideoInfo(videoUrl);
+      const videoInfo = await this.getVideoInfo(videoUrl, useCookies);
       const selectedFormat = videoInfo.formats.find(f => f.format_id === formatId);
       
       if (!selectedFormat) {
@@ -203,6 +376,12 @@ class StreamingService {
         '--no-check-certificates',
         '--ignore-errors',
       ];
+
+      // Cookie authentication for YouTube
+      let cookieAuthUsed = false;
+      if (isYouTube && useCookies) {
+        cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+      }
 
       // Platform-specific optimizations
       if (isYouTube) {
@@ -470,19 +649,25 @@ class StreamingService {
   }
 
   /**
-   * YouTube-specific fallback method
+   * YouTube-specific fallback method with cookie authentication
    */
   private static async getVideoInfoYouTubeFallback(url: string): Promise<VideoInfo> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       const ytdlpArgs = [
         '--dump-json',
         '--no-warnings',
         '--no-check-certificates',
         '--ignore-errors',
+      ];
+
+      // Try cookie authentication first in fallback
+      const cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+
+      ytdlpArgs.push(
         '--extractor-args', 'youtube:skip=dash',
         '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
         url
-      ];
+      );
 
       console.log('YouTube fallback yt-dlp args:', ytdlpArgs);
       const ytdlp = spawn('yt-dlp', ytdlpArgs);

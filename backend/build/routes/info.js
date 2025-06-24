@@ -61,8 +61,9 @@ const videoInfoValidation = [
 router.post('/', auth_1.authenticate, videoInfoValidation, validateRequest, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { url } = req.body;
-        // Get video information using StreamingService
-        const videoInfo = yield streamingService_1.StreamingService.getVideoInfo(url);
+        console.log('Getting video info for URL:', url);
+        // Get video information using StreamingService with fallback
+        const videoInfo = yield streamingService_1.StreamingService.getVideoInfoWithFallback(url);
         // Filter and format the response for frontend compatibility
         const response = {
             title: videoInfo.title,
