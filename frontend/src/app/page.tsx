@@ -58,7 +58,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
 
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user, makeAuthenticatedRequest } = useAuth();
 
   const handleGetInfo = async () => {
     // Check authentication for free users
@@ -76,11 +76,8 @@ export default function Home() {
     toast.info("Đang lấy thông tin video...");
 
     try {
-      const response = await fetch("/api/info", {
+      const response = await makeAuthenticatedRequest("/api/info", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ url }),
       });
 
@@ -105,11 +102,8 @@ export default function Home() {
     setDownloadingFormat(format_id);
     toast.info("Đang chuẩn bị tải xuống...");
     try {
-      const response = await fetch("/api/download", {
+      const response = await makeAuthenticatedRequest("/api/download", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         // Gửi đầy đủ thông tin cần thiết cho backend
         body: JSON.stringify({ url, format_id, title, ext }),
       });
