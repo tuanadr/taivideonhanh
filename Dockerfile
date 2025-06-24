@@ -10,7 +10,12 @@ RUN apk add --no-cache \
     nginx \
     supervisor \
     wget \
+    chromium \
     && pip3 install --break-system-packages yt-dlp
+
+# Create directories for cookie authentication
+RUN mkdir -p /tmp/cookies /opt/chrome-profile && \
+    chmod 755 /tmp/cookies /opt/chrome-profile
 
 # 2. Dependencies stage - All dependencies for building
 FROM base AS deps
@@ -80,6 +85,15 @@ COPY --from=builder --chown=appuser:appuser /app/frontend/public ./frontend/fron
 # Copy configuration files
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisord.conf
+
+# Copy cookie setup script
+COPY setup-youtube-cookies.sh /usr/local/bin/setup-youtube-cookies.sh
+RUN chmod +x /usr/local/bin/setup-youtube-cookies.sh
+
+# Set environment variables for cookie authentication
+ENV YOUTUBE_COOKIES_PATH=/tmp/cookies/youtube-cookies.txt
+ENV CHROME_USER_DATA_DIR=/opt/chrome-profile
+ENV ENABLE_COOKIE_AUTH=true
 
 # Expose port 80 (nginx sẽ route internally)
 EXPOSE 80
