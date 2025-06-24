@@ -138,21 +138,40 @@ class StreamingService {
         });
     }
     /**
-     * Smart cookie authentication setup
+     * Smart cookie authentication setup with production-ready fallback
      */
     static setupCookieAuth(ytdlpArgs) {
         return __awaiter(this, void 0, void 0, function* () {
+            // Check if cookie authentication is enabled
+            if (!this.ENABLE_COOKIE_AUTH) {
+                console.log('ℹ️ Cookie authentication disabled via ENABLE_COOKIE_AUTH=false');
+                return false;
+            }
+            // Skip cookie authentication in environments where it's not available
+            const skipCookieAuth = process.env.SKIP_COOKIE_AUTH === 'true' ||
+                process.env.NODE_ENV === 'test' ||
+                !process.env.DISPLAY; // No display available (headless)
+            if (skipCookieAuth) {
+                console.log('ℹ️ Cookie authentication skipped (environment not suitable)');
+                return false;
+            }
             try {
                 const cookieAuth = yield this.detectCookieAuth();
                 if (cookieAuth.success) {
                     if (cookieAuth.method === 'browser') {
                         // Try each browser until one works
                         for (const browser of this.SUPPORTED_BROWSERS) {
-                            const testResult = yield this.testBrowserCookies(browser);
-                            if (testResult.success) {
-                                ytdlpArgs.push('--cookies-from-browser', browser);
-                                console.log(`🍪 Using ${browser} cookies for authentication`);
-                                return true;
+                            try {
+                                const testResult = yield this.testBrowserCookies(browser);
+                                if (testResult.success) {
+                                    ytdlpArgs.push('--cookies-from-browser', browser);
+                                    console.log(`🍪 Using ${browser} cookies for authentication`);
+                                    return true;
+                                }
+                            }
+                            catch (browserError) {
+                                console.log(`⚠️ Browser ${browser} test failed:`, browserError instanceof Error ? browserError.message : 'Unknown error');
+                                continue; // Try next browser
                             }
                         }
                     }
@@ -162,10 +181,11 @@ class StreamingService {
                         return true;
                     }
                 }
+                console.log('ℹ️ No cookie authentication available, proceeding without cookies (this is normal for most videos)');
                 return false;
             }
             catch (error) {
-                console.log('⚠️ Cookie authentication setup failed:', error instanceof Error ? error.message : 'Unknown error');
+                console.log('ℹ️ Cookie authentication setup failed, proceeding without cookies:', error instanceof Error ? error.message : 'Unknown error');
                 return false;
             }
         });
@@ -222,11 +242,11 @@ class StreamingService {
                                 errorMessage = 'YouTube yêu cầu xác thực nâng cao. Cookies hiện tại không đủ quyền. Vui lòng đăng nhập YouTube trên trình duyệt và thử lại.';
                             }
                             else {
-                                errorMessage = 'YouTube yêu cầu xác thực cookies. Vui lòng đăng nhập YouTube trên Chrome và thử lại. Nếu vẫn lỗi, hãy liên hệ hỗ trợ.';
+                                errorMessage = 'YouTube yêu cầu xác thực cookies. Video này có thể bị hạn chế. Vui lòng thử video khác hoặc liên hệ hỗ trợ để cài đặt cookie authentication.';
                             }
                         }
                         else if (isYouTube && errorData.includes('cookies')) {
-                            errorMessage = 'Lỗi xác thực YouTube cookies. Vui lòng đảm bảo đã đăng nhập YouTube trên trình duyệt Chrome.';
+                            errorMessage = 'Lỗi xác thực YouTube cookies. Hệ thống đang hoạt động bình thường cho hầu hết video. Nếu gặp lỗi liên tục, vui lòng liên hệ hỗ trợ.';
                         }
                         else if (isTikTok && errorData.includes('Unable to extract')) {
                             errorMessage = 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
@@ -690,4 +710,5 @@ StreamingService.DEFAULT_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 StreamingService.SUPPORTED_FORMATS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'm4a', 'mp3', 'wav'];
 StreamingService.SUPPORTED_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
 StreamingService.COOKIES_FILE_PATH = process.env.YOUTUBE_COOKIES_PATH || '/tmp/youtube-cookies.txt';
+StreamingService.ENABLE_COOKIE_AUTH = process.env.ENABLE_COOKIE_AUTH !== 'false'; // Default enabled
 exports.default = StreamingService;
