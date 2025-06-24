@@ -9,9 +9,18 @@ const router = Router();
  * Helper function to generate quality labels
  */
 function getQualityLabel(resolution: string, hasAudio: boolean): string {
-  if (!resolution) return 'Unknown quality';
+  if (!resolution || resolution === 'unknown') return 'Unknown quality';
 
-  const height = parseInt(resolution.split('x')[1]);
+  // Handle resolution format like "1280x720" or just "720p"
+  const heightMatch = resolution.match(/(\d+)(?:x(\d+))?/);
+  if (!heightMatch) return 'Unknown quality';
+
+  // If format is "1280x720", take the second number (720)
+  // If format is "720p", take the first number (720)
+  const height = heightMatch[2] ? parseInt(heightMatch[2]) : parseInt(heightMatch[1]);
+
+  if (isNaN(height)) return 'Unknown quality';
+
   let qualityName = '';
 
   if (height >= 2160) qualityName = '4K';
@@ -114,8 +123,10 @@ router.post('/',
           if (!format.resolution) return false;
 
           // Lower minimum resolution for more options
-          const height = parseInt(format.resolution.split('x')[1]);
-          return height >= 240; // Minimum 240p
+          const resolutionParts = format.resolution.split('x');
+          if (resolutionParts.length < 2) return false;
+          const height = parseInt(resolutionParts[1]);
+          return !isNaN(height) && height >= 240; // Minimum 240p
         });
       } else {
         // TikTok and other platforms: original logic (works fine)
@@ -123,8 +134,10 @@ router.post('/',
           if (format.vcodec === 'none' || format.ext !== 'mp4') return false;
           if (!format.resolution) return false;
 
-          const height = parseInt(format.resolution.split('x')[1]);
-          return height >= 360; // Minimum 360p
+          const resolutionParts = format.resolution.split('x');
+          if (resolutionParts.length < 2) return false;
+          const height = parseInt(resolutionParts[1]);
+          return !isNaN(height) && height >= 360; // Minimum 360p
         });
       }
 
@@ -140,8 +153,10 @@ router.post('/',
         if (!aHasAudio && bHasAudio) return 1;
 
         // Second priority: resolution (higher first)
-        const aHeight = parseInt(a.resolution?.split('x')[1] || '0');
-        const bHeight = parseInt(b.resolution?.split('x')[1] || '0');
+        const aResolutionParts = a.resolution?.split('x') || ['0', '0'];
+        const bResolutionParts = b.resolution?.split('x') || ['0', '0'];
+        const aHeight = parseInt(aResolutionParts[1] || '0');
+        const bHeight = parseInt(bResolutionParts[1] || '0');
         return bHeight - aHeight;
       });
 
@@ -156,8 +171,8 @@ router.post('/',
         total_formats: videoInfo.formats?.length || 0,
         available_formats: sortedFormats.length,
         formats: sortedFormats.map(format => {
-          const hasAudio = format.acodec && format.acodec !== 'none';
-          const quality = getQualityLabel(format.resolution, hasAudio);
+          const hasAudio = !!(format.acodec && format.acodec !== 'none');
+          const quality = getQualityLabel(format.resolution || 'unknown', hasAudio);
 
           return {
             format_id: format.format_id,
