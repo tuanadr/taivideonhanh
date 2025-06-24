@@ -12,7 +12,7 @@ RUN apk add --no-cache \
     wget \
     && pip3 install --break-system-packages yt-dlp
 
-# 2. Dependencies stage
+# 2. Dependencies stage - All dependencies for building
 FROM base AS deps
 WORKDIR /app
 
@@ -21,7 +21,20 @@ COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 COPY backend/package*.json ./backend/
 
-# Install dependencies for monorepo
+# Install all dependencies (including dev dependencies for building)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --workspaces
+
+# 2.1. Production dependencies stage
+FROM base AS prod-deps
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY frontend/package*.json ./frontend/
+COPY backend/package*.json ./backend/
+
+# Install only production dependencies
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --workspaces --only=production
 
@@ -29,7 +42,7 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies
+# Copy all dependencies (including dev dependencies)
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/frontend/node_modules ./frontend/node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
@@ -51,8 +64,8 @@ WORKDIR /app
 RUN addgroup -g 1001 -S appuser && \
     adduser -S appuser -u 1001 -G appuser
 
-# Copy built applications
-COPY --from=deps --chown=appuser:appuser /app/node_modules ./node_modules
+# Copy production dependencies only
+COPY --from=prod-deps --chown=appuser:appuser /app/node_modules ./node_modules
 COPY --from=builder --chown=appuser:appuser /app/backend/build ./backend/build
 COPY --from=builder --chown=appuser:appuser /app/backend/package.json ./backend/
 COPY --from=builder --chown=appuser:appuser /app/frontend/.next/standalone ./frontend/
