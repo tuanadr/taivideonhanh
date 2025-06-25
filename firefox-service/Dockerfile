@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     firefox \
     xvfb \
     x11vnc \
-    websockify \
+    novnc \
+    python3-websockify \
     supervisor \
     curl \
     wget \
@@ -53,9 +54,13 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY scripts/ ./scripts/
 RUN chmod +x ./scripts/*.sh
 
-# Set up noVNC - use websockify directly instead of novnc_proxy
+# Set up noVNC
 RUN mkdir -p /app/novnc && \
-    ln -sf /usr/share/novnc/* /app/novnc/ 2>/dev/null || true
+    if [ -d "/usr/share/novnc" ]; then \
+        cp -r /usr/share/novnc/* /app/novnc/ 2>/dev/null || true; \
+    fi && \
+    # Ensure websockify is available
+    python3 -c "import websockify" || pip3 install websockify
 
 # Create user for Firefox
 RUN useradd -m -s /bin/bash firefox && \
