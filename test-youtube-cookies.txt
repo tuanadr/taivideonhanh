@@ -1,0 +1,5 @@
+# Netscape HTTP Cookie File
+# This is a test cookie file for demonstration
+.youtube.com	TRUE	/	FALSE	1735689600	session_token	test_session_token_value
+.youtube.com	TRUE	/	FALSE	1735689600	VISITOR_INFO1_LIVE	test_visitor_info_value
+youtube.com	FALSE	/	FALSE	1735689600	YSC	test_ysc_value

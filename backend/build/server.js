@@ -12,6 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const database_1 = __importDefault(require("./config/database"));
 const cors_1 = __importDefault(require("cors"));
@@ -22,6 +24,7 @@ const redis_1 = require("./config/redis");
 const subscriptionService_1 = __importDefault(require("./services/subscriptionService"));
 const adminService_1 = __importDefault(require("./services/adminService"));
 const legalService_1 = __importDefault(require("./services/legalService"));
+const cookieService_1 = __importDefault(require("./services/cookieService"));
 // Import models to ensure they are registered
 require("./models");
 // Import routes
@@ -93,6 +96,9 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         // Initialize default legal documents
         yield legalService_1.default.initializeDefaultLegalDocuments();
         console.log('Default legal documents initialized.');
+        // Initialize cookie directories
+        yield cookieService_1.default.initializeDirectories();
+        console.log('Cookie directories initialized.');
         // Start performance monitoring
         setInterval(() => __awaiter(void 0, void 0, void 0, function* () {
             yield performanceService_1.PerformanceService.storeMetrics();
