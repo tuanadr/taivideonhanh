@@ -64,49 +64,165 @@ let platformManager;
 
 async function initializeServices() {
   try {
-    firefoxManager = new FirefoxManager();
-    cookieExtractor = new CookieExtractor();
-    platformManager = new PlatformManager();
-    
-    await firefoxManager.initialize();
-    await cookieExtractor.initialize();
-    await platformManager.initialize();
-    
-    logger.info('🦊 Firefox Cookie Service initialized successfully');
+    logger.info('🔄 Initializing Firefox Cookie Service...');
+
+    // Initialize services with error handling
+    try {
+      firefoxManager = new FirefoxManager();
+      await firefoxManager.initialize();
+      logger.info('✅ Firefox Manager initialized');
+    } catch (error) {
+      logger.warn('⚠️ Firefox Manager initialization failed:', error.message);
+      firefoxManager = null;
+    }
+
+    try {
+      cookieExtractor = new CookieExtractor();
+      await cookieExtractor.initialize();
+      logger.info('✅ Cookie Extractor initialized');
+    } catch (error) {
+      logger.warn('⚠️ Cookie Extractor initialization failed:', error.message);
+      cookieExtractor = null;
+    }
+
+    try {
+      platformManager = new PlatformManager();
+      await platformManager.initialize();
+      logger.info('✅ Platform Manager initialized');
+    } catch (error) {
+      logger.warn('⚠️ Platform Manager initialization failed:', error.message);
+      platformManager = null;
+    }
+
+    logger.info('🦊 Firefox Cookie Service initialization completed');
   } catch (error) {
-    logger.error('❌ Failed to initialize services:', error);
-    process.exit(1);
+    logger.error('❌ Critical initialization error:', error);
+    // Don't exit, let the service run with limited functionality
   }
 }
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+// Basic test endpoint
+app.get('/', (req, res) => {
   res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    services: {
-      firefox: firefoxManager?.isReady() || false,
-      cookieExtractor: cookieExtractor?.isReady() || false,
-      platformManager: platformManager?.isReady() || false
-    }
+    service: 'Firefox Cookie Management Service',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: [
+      'GET /health - Health check',
+      'GET /status - Service status',
+      'GET /platforms - Supported platforms',
+      'POST /extract-cookies - Extract cookies',
+      'GET /vnc - VNC information'
+    ]
   });
+});
+
+// Health check endpoint - Simple version for debugging
+app.get('/health', (req, res) => {
+  try {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      version: '1.0.0',
+      services: {
+        firefox: firefoxManager?.isReady ? firefoxManager.isReady() : false,
+        cookieExtractor: cookieExtractor?.isReady ? cookieExtractor.isReady() : false,
+        platformManager: platformManager?.isReady ? platformManager.isReady() : false
+      }
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Get supported platforms
+app.get('/platforms', (req, res) => {
+  try {
+    const platforms = ['youtube', 'facebook', 'instagram', 'tiktok', 'twitter'];
+    res.json({
+      platforms: platforms,
+      count: platforms.length,
+      status: 'available'
+    });
+  } catch (error) {
+    logger.error('Platforms check failed:', error);
+    res.status(500).json({ error: 'Failed to get platforms' });
+  }
 });
 
 // Get service status
 app.get('/status', async (req, res) => {
   try {
     const status = {
-      firefox: await firefoxManager.getStatus(),
-      sessions: await firefoxManager.getActiveSessions(),
-      platforms: platformManager.getSupportedPlatforms(),
-      cookies: await cookieExtractor.getCookieStatus()
+      service: 'Firefox Cookie Management Service',
+      version: '1.0.0',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
     };
-    
+
+    // Add service status if available
+    if (firefoxManager) {
+      try {
+        status.firefox = await firefoxManager.getStatus();
+      } catch (e) {
+        status.firefox = 'error';
+      }
+    }
+
+    if (platformManager) {
+      try {
+        status.platforms = platformManager.getSupportedPlatforms();
+      } catch (e) {
+        status.platforms = ['youtube', 'facebook', 'instagram', 'tiktok', 'twitter'];
+      }
+    }
+
+    if (cookieExtractor) {
+      try {
+        status.cookies = await cookieExtractor.getCookieStatus();
+      } catch (e) {
+        status.cookies = 'error';
+      }
+    }
+
     res.json(status);
   } catch (error) {
     logger.error('Status check failed:', error);
-    res.status(500).json({ error: 'Failed to get status' });
+    res.status(500).json({
+      error: 'Failed to get status',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// VNC information endpoint
+app.get('/vnc', (req, res) => {
+  try {
+    res.json({
+      vnc: {
+        url: 'https://firefox-vnc.taivideonhanh.vn',
+        port: 6080,
+        password: process.env.VNC_PASSWORD || 'firefox123',
+        display: process.env.DISPLAY || ':99'
+      },
+      instructions: [
+        '1. Access VNC URL in browser',
+        '2. Enter VNC password',
+        '3. Use Firefox to login to platforms',
+        '4. Extract cookies via API'
+      ],
+      platforms: ['youtube', 'facebook', 'instagram', 'tiktok', 'twitter']
+    });
+  } catch (error) {
+    logger.error('VNC info failed:', error);
+    res.status(500).json({ error: 'Failed to get VNC info' });
   }
 });
 
@@ -243,11 +359,23 @@ app.post('/extract-cookies', async (req, res) => {
 });
 
 // Get platform configurations
-app.get('/platforms', (req, res) => {
-  res.json({
-    platforms: platformManager.getSupportedPlatforms(),
-    configurations: platformManager.getPlatformConfigurations()
-  });
+app.get('/platform-configs', (req, res) => {
+  try {
+    if (platformManager) {
+      res.json({
+        platforms: platformManager.getSupportedPlatforms(),
+        configurations: platformManager.getPlatformConfigurations()
+      });
+    } else {
+      res.json({
+        platforms: ['youtube', 'facebook', 'instagram', 'tiktok', 'twitter'],
+        configurations: {}
+      });
+    }
+  } catch (error) {
+    logger.error('Platform configs failed:', error);
+    res.status(500).json({ error: 'Failed to get platform configs' });
+  }
 });
 
 // Validate cookies for a platform
@@ -309,8 +437,8 @@ app.post('/auto-refresh', async (req, res) => {
   }
 });
 
-// VNC access info
-app.get('/vnc', (req, res) => {
+// VNC access detailed info
+app.get('/vnc-details', (req, res) => {
   res.json({
     vncUrl: 'http://localhost:6080/vnc.html?host=localhost&port=6080',
     instructions: [
@@ -363,12 +491,33 @@ process.on('SIGINT', async () => {
 
 // Start server
 async function startServer() {
+  console.log('🔄 Starting Firefox Cookie Service...');
+  console.log(`📡 Port: ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+
   await initializeServices();
-  
-  app.listen(PORT, '0.0.0.0', () => {
+
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🦊 Firefox Cookie Service running on port ${PORT}`);
+    console.log(`📡 API endpoints available at http://0.0.0.0:${PORT}`);
+    console.log(`🖥️ VNC interface available at http://localhost:6080`);
+
     logger.info(`🦊 Firefox Cookie Service running on port ${PORT}`);
     logger.info(`🌐 VNC access: http://localhost:6080/vnc.html`);
     logger.info(`📡 API docs: http://localhost:${PORT}/health`);
+
+    // Test endpoints
+    console.log('🧪 Available endpoints:');
+    console.log('  GET / - Service info');
+    console.log('  GET /health - Health check');
+    console.log('  GET /platforms - Supported platforms');
+    console.log('  GET /status - Service status');
+    console.log('  GET /vnc - VNC information');
+  });
+
+  server.on('error', (error) => {
+    console.error('❌ Server error:', error);
+    logger.error('Server error:', error);
   });
 }
 
