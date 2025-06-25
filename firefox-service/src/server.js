@@ -1,3 +1,5 @@
+console.log('🔄 Loading dependencies...');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -8,9 +10,31 @@ const winston = require('winston');
 const path = require('path');
 const fs = require('fs').promises;
 
-const FirefoxManager = require('./firefoxManager');
-const CookieExtractor = require('./cookieExtractor');
-const PlatformManager = require('./platformManager');
+console.log('✅ Core dependencies loaded');
+
+// Import our services with error handling
+let FirefoxManager, CookieExtractor, PlatformManager;
+
+try {
+  FirefoxManager = require('./firefoxManager');
+  console.log('✅ FirefoxManager loaded');
+} catch (error) {
+  console.warn('⚠️ FirefoxManager failed to load:', error.message);
+}
+
+try {
+  CookieExtractor = require('./cookieExtractor');
+  console.log('✅ CookieExtractor loaded');
+} catch (error) {
+  console.warn('⚠️ CookieExtractor failed to load:', error.message);
+}
+
+try {
+  PlatformManager = require('./platformManager');
+  console.log('✅ PlatformManager loaded');
+} catch (error) {
+  console.warn('⚠️ PlatformManager failed to load:', error.message);
+}
 
 // Initialize logger
 const logger = winston.createLogger({
@@ -64,38 +88,62 @@ let platformManager;
 
 async function initializeServices() {
   try {
+    console.log('🔄 Initializing Firefox Cookie Service...');
     logger.info('🔄 Initializing Firefox Cookie Service...');
 
     // Initialize services with error handling
-    try {
-      firefoxManager = new FirefoxManager();
-      await firefoxManager.initialize();
-      logger.info('✅ Firefox Manager initialized');
-    } catch (error) {
-      logger.warn('⚠️ Firefox Manager initialization failed:', error.message);
+    if (FirefoxManager) {
+      try {
+        firefoxManager = new FirefoxManager();
+        await firefoxManager.initialize();
+        console.log('✅ Firefox Manager initialized');
+        logger.info('✅ Firefox Manager initialized');
+      } catch (error) {
+        console.warn('⚠️ Firefox Manager initialization failed:', error.message);
+        logger.warn('⚠️ Firefox Manager initialization failed:', error.message);
+        firefoxManager = null;
+      }
+    } else {
+      console.warn('⚠️ FirefoxManager class not available');
       firefoxManager = null;
     }
 
-    try {
-      cookieExtractor = new CookieExtractor();
-      await cookieExtractor.initialize();
-      logger.info('✅ Cookie Extractor initialized');
-    } catch (error) {
-      logger.warn('⚠️ Cookie Extractor initialization failed:', error.message);
+    if (CookieExtractor) {
+      try {
+        cookieExtractor = new CookieExtractor();
+        await cookieExtractor.initialize();
+        console.log('✅ Cookie Extractor initialized');
+        logger.info('✅ Cookie Extractor initialized');
+      } catch (error) {
+        console.warn('⚠️ Cookie Extractor initialization failed:', error.message);
+        logger.warn('⚠️ Cookie Extractor initialization failed:', error.message);
+        cookieExtractor = null;
+      }
+    } else {
+      console.warn('⚠️ CookieExtractor class not available');
       cookieExtractor = null;
     }
 
-    try {
-      platformManager = new PlatformManager();
-      await platformManager.initialize();
-      logger.info('✅ Platform Manager initialized');
-    } catch (error) {
-      logger.warn('⚠️ Platform Manager initialization failed:', error.message);
+    if (PlatformManager) {
+      try {
+        platformManager = new PlatformManager();
+        await platformManager.initialize();
+        console.log('✅ Platform Manager initialized');
+        logger.info('✅ Platform Manager initialized');
+      } catch (error) {
+        console.warn('⚠️ Platform Manager initialization failed:', error.message);
+        logger.warn('⚠️ Platform Manager initialization failed:', error.message);
+        platformManager = null;
+      }
+    } else {
+      console.warn('⚠️ PlatformManager class not available');
       platformManager = null;
     }
 
+    console.log('🦊 Firefox Cookie Service initialization completed');
     logger.info('🦊 Firefox Cookie Service initialization completed');
   } catch (error) {
+    console.error('❌ Critical initialization error:', error);
     logger.error('❌ Critical initialization error:', error);
     // Don't exit, let the service run with limited functionality
   }
@@ -489,36 +537,97 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Environment check
+function checkEnvironment() {
+  console.log('🔍 Environment Check:');
+  console.log(`  NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+  console.log(`  PORT: ${process.env.PORT || 'not set'}`);
+  console.log(`  DISPLAY: ${process.env.DISPLAY || 'not set'}`);
+  console.log(`  FIREFOX_PROFILE_PATH: ${process.env.FIREFOX_PROFILE_PATH || 'not set'}`);
+  console.log(`  COOKIES_PATH: ${process.env.COOKIES_PATH || 'not set'}`);
+  console.log(`  VNC_PASSWORD: ${process.env.VNC_PASSWORD ? 'set' : 'not set'}`);
+
+  // Check if Firefox is available
+  const { execSync } = require('child_process');
+  try {
+    const firefoxVersion = execSync('firefox --version', { encoding: 'utf8' });
+    console.log(`  Firefox: ${firefoxVersion.trim()}`);
+  } catch (error) {
+    console.warn('  Firefox: not found or not executable');
+  }
+
+  // Check if X11 is running
+  try {
+    execSync('xdpyinfo -display :99', { encoding: 'utf8' });
+    console.log('  X11 Display :99: available');
+  } catch (error) {
+    console.warn('  X11 Display :99: not available');
+  }
+}
+
 // Start server
 async function startServer() {
-  console.log('🔄 Starting Firefox Cookie Service...');
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  try {
+    console.log('🔄 Starting Firefox Cookie Service...');
 
-  await initializeServices();
+    // Check environment
+    checkEnvironment();
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🦊 Firefox Cookie Service running on port ${PORT}`);
-    console.log(`📡 API endpoints available at http://0.0.0.0:${PORT}`);
-    console.log(`🖥️ VNC interface available at http://localhost:6080`);
+    console.log(`📡 Port: ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🖥️ Display: ${process.env.DISPLAY || 'not set'}`);
 
-    logger.info(`🦊 Firefox Cookie Service running on port ${PORT}`);
-    logger.info(`🌐 VNC access: http://localhost:6080/vnc.html`);
-    logger.info(`📡 API docs: http://localhost:${PORT}/health`);
+    // Initialize services with error handling
+    try {
+      await initializeServices();
+      console.log('✅ Services initialization completed');
+    } catch (error) {
+      console.warn('⚠️ Services initialization had issues:', error.message);
+      // Continue anyway - service can run with limited functionality
+    }
 
-    // Test endpoints
-    console.log('🧪 Available endpoints:');
-    console.log('  GET / - Service info');
-    console.log('  GET /health - Health check');
-    console.log('  GET /platforms - Supported platforms');
-    console.log('  GET /status - Service status');
-    console.log('  GET /vnc - VNC information');
-  });
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🦊 Firefox Cookie Service running on port ${PORT}`);
+      console.log(`📡 API endpoints available at http://0.0.0.0:${PORT}`);
+      console.log(`🖥️ VNC interface available at http://localhost:6080`);
 
-  server.on('error', (error) => {
-    console.error('❌ Server error:', error);
-    logger.error('Server error:', error);
-  });
+      logger.info(`🦊 Firefox Cookie Service running on port ${PORT}`);
+      logger.info(`🌐 VNC access: http://localhost:6080/vnc.html`);
+      logger.info(`📡 API docs: http://localhost:${PORT}/health`);
+
+      // Test endpoints
+      console.log('🧪 Available endpoints:');
+      console.log('  GET / - Service info');
+      console.log('  GET /health - Health check');
+      console.log('  GET /platforms - Supported platforms');
+      console.log('  GET /status - Service status');
+      console.log('  GET /vnc - VNC information');
+    });
+
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      logger.error('Server error:', error);
+
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+        process.exit(1);
+      }
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('📴 Received SIGTERM, shutting down gracefully');
+      server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+      });
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 startServer().catch(error => {
