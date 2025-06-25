@@ -3,6 +3,9 @@ const nextConfig = {
   // Enable standalone output for Docker optimization
   output: 'standalone',
 
+  // Handle trailing slashes consistently
+  trailingSlash: false,
+
   // API rewrites for monorepo container
   async rewrites() {
     return [
@@ -11,6 +14,36 @@ const nextConfig = {
         destination: 'http://localhost:5000/api/:path*',
       },
     ]
+  },
+
+  // Headers for admin routes and security
+  async headers() {
+    return [
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Redirects for admin routes
+  async redirects() {
+    return [
+      {
+        source: '/admin',
+        destination: '/admin/login',
+        permanent: false,
+      },
+    ];
   },
 
   // Optimize images
@@ -30,6 +63,8 @@ const nextConfig = {
 
   // Experimental features for better performance
   experimental: {
+    // Enable app directory for admin routes
+    appDir: true,
     // Optimize CSS - disabled due to critters issue
     // optimizeCss: true,
   },
