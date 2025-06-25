@@ -110,11 +110,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  // Get API base URL - use production URL in browser, fallback to localhost in development
+  const getApiUrl = () => {
+    if (typeof window !== 'undefined') {
+      // In browser - use current domain for production
+      return process.env.NEXT_PUBLIC_API_URL || `${window.location.protocol}//${window.location.host}/api`;
+    }
+    // In server - use environment variable or localhost for development
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  };
 
   const fetchPlans = useCallback(async () => {
     setLoadingPlans(true);
     try {
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/subscription/plans`);
       const data = await response.json();
       
@@ -128,13 +137,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoadingPlans(false);
     }
-  }, [apiUrl]);
+  }, []);
 
   const fetchCurrentSubscription = useCallback(async () => {
     if (!tokens?.accessToken) return;
-    
+
     setLoadingSubscription(true);
     try {
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/subscription/current`, {
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
@@ -153,13 +163,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoadingSubscription(false);
     }
-  }, [tokens, apiUrl]);
+  }, [tokens]);
 
   const fetchPayments = useCallback(async () => {
     if (!tokens?.accessToken) return;
-    
+
     setLoadingPayments(true);
     try {
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/subscription/payments`, {
         headers: {
           'Authorization': `Bearer ${tokens.accessToken}`,
@@ -177,11 +188,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       setLoadingPayments(false);
     }
-  }, [tokens, apiUrl]);
+  }, [tokens]);
 
   const createPaymentIntent = async (planId: string, paymentMethod: string) => {
     if (!tokens?.accessToken) throw new Error('Authentication required');
-    
+
+    const apiUrl = getApiUrl();
     const response = await fetch(`${apiUrl}/subscription/payment-intent`, {
       method: 'POST',
       headers: {
@@ -205,7 +217,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const createTestPayment = async (planId: string) => {
     if (!tokens?.accessToken) throw new Error('Authentication required');
-    
+
+    const apiUrl = getApiUrl();
     const response = await fetch(`${apiUrl}/subscription/test-payment`, {
       method: 'POST',
       headers: {
@@ -228,7 +241,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const cancelSubscription = async (subscriptionId: string) => {
     if (!tokens?.accessToken) throw new Error('Authentication required');
-    
+
+    const apiUrl = getApiUrl();
     const response = await fetch(`${apiUrl}/subscription/${subscriptionId}`, {
       method: 'DELETE',
       headers: {
