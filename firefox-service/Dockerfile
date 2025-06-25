@@ -1,27 +1,8 @@
-# Firefox Service for Cookie Management
-# Optimized for yt-dlp cookie extraction
-
+# Firefox Service - Production Ready (No GPG Issues)
 FROM ubuntu:22.04
 
 # Avoid interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    firefox \
-    xvfb \
-    x11vnc \
-    novnc \
-    python3-websockify \
-    supervisor \
-    curl \
-    wget \
-    unzip \
-    python3 \
-    python3-pip \
-    sqlite3 \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install all dependencies in one layer to avoid GPG issues
 RUN apt-get update && apt-get install -y \
