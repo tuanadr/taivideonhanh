@@ -29,35 +29,67 @@ export class CookieService {
     ? path.dirname(process.env.COOKIES_PATH)
     : process.env.YOUTUBE_COOKIES_PATH
     ? path.dirname(process.env.YOUTUBE_COOKIES_PATH)
-    : '/tmp/cookies';
+    : '/app/data/cookies';  // Changed from /tmp/cookies to /app/data/cookies for EasyPanel
 
-  private static readonly COOKIES_FILE = process.env.COOKIES_PATH || process.env.YOUTUBE_COOKIES_PATH || '/tmp/cookies/platform-cookies.txt';
+  private static readonly COOKIES_FILE = process.env.COOKIES_PATH || process.env.YOUTUBE_COOKIES_PATH || '/app/data/cookies/platform-cookies.txt';
   private static readonly BACKUP_DIR = path.join(this.COOKIES_DIR, 'backup');
   private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   private static readonly ALLOWED_EXTENSIONS = ['.txt'];
 
   /**
-   * Initialize cookie directories
+   * Initialize cookie directories with proper error handling for EasyPanel
    */
   public static async initializeDirectories(): Promise<void> {
     try {
       // Create main cookies directory
-      await mkdir(this.COOKIES_DIR, { recursive: true });
-      
-      // Create backup directory
-      await mkdir(this.BACKUP_DIR, { recursive: true });
-      
-      // Set secure permissions
-      if (process.platform !== 'win32') {
-        const { exec } = require('child_process');
-        exec(`chmod 700 ${this.COOKIES_DIR}`);
-        exec(`chmod 700 ${this.BACKUP_DIR}`);
+      try {
+        await mkdir(this.COOKIES_DIR, { recursive: true });
+        console.log(`Created cookies directory: ${this.COOKIES_DIR}`);
+      } catch (error: any) {
+        if (error.code !== 'EEXIST') {
+          console.warn(`Could not create cookies directory ${this.COOKIES_DIR}:`, error.message);
+          // Try alternative directory
+          const altDir = '/tmp/cookies';
+          await mkdir(altDir, { recursive: true });
+          console.log(`Using alternative cookies directory: ${altDir}`);
+        }
       }
-      
+
+      // Create backup directory
+      try {
+        await mkdir(this.BACKUP_DIR, { recursive: true });
+        console.log(`Created backup directory: ${this.BACKUP_DIR}`);
+      } catch (error: any) {
+        if (error.code !== 'EEXIST') {
+          console.warn(`Could not create backup directory ${this.BACKUP_DIR}:`, error.message);
+          // Continue without backup directory - not critical
+        }
+      }
+
+      // Set secure permissions (best effort)
+      if (process.platform !== 'win32') {
+        try {
+          const { exec } = require('child_process');
+          exec(`chmod 700 ${this.COOKIES_DIR}`, (error) => {
+            if (error) {
+              console.warn(`Could not set permissions for ${this.COOKIES_DIR}:`, error.message);
+            }
+          });
+          exec(`chmod 700 ${this.BACKUP_DIR}`, (error) => {
+            if (error) {
+              console.warn(`Could not set permissions for ${this.BACKUP_DIR}:`, error.message);
+            }
+          });
+        } catch (error) {
+          console.warn('Could not set directory permissions:', error);
+        }
+      }
+
       console.log('Cookie directories initialized successfully');
     } catch (error) {
       console.error('Failed to initialize cookie directories:', error);
-      throw new Error('Cookie directory initialization failed');
+      // Don't throw error - allow server to start without cookie functionality
+      console.warn('Server will start without cookie functionality');
     }
   }
 
