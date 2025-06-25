@@ -46,7 +46,9 @@ COPY scripts/ ./scripts/
 RUN chmod +x ./scripts/*.sh
 
 # Set up noVNC
-RUN ln -s /usr/share/novnc /app/novnc
+RUN ln -s /usr/share/novnc /app/novnc && \
+    ls -la /usr/share/novnc/utils/ && \
+    chmod +x /usr/share/novnc/utils/novnc_proxy
 
 # Create user for Firefox
 RUN useradd -m -s /bin/bash firefox && \
