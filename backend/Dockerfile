@@ -16,19 +16,20 @@ FROM base AS deps
 WORKDIR /usr/src/app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json ./
 
-# Install dependencies with npm ci for faster builds
+# Install dependencies with npm install
 # Enable BuildKit cache mount for faster builds
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production --ignore-scripts && npm cache clean --force
+    npm install --only=production --ignore-scripts && npm cache clean --force
 
 # 3. Builder Stage
 FROM base AS builder
 WORKDIR /usr/src/app
 
-# Copy dependencies
-COPY --from=deps /usr/src/app/node_modules ./node_modules
+# Copy package.json and install all dependencies (including dev)
+COPY package.json ./
+RUN npm install --ignore-scripts
 
 # Copy source code
 COPY . .

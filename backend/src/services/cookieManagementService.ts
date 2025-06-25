@@ -387,8 +387,8 @@ export class CookieManagementService {
         console.log(`🔄 Attempting to refresh cookies for ${result.platform}...`);
         
         try {
-          // Try to extract fresh cookies from Chromium service
-          await this.extractCookiesFromChromium(platform);
+          // Try to extract fresh cookies from Firefox service
+          await this.extractCookiesFromFirefox(platform);
           console.log(`✅ Successfully refreshed cookies for ${result.platform}`);
         } catch (error) {
           console.error(`❌ Failed to refresh cookies for ${result.platform}:`, error);
