@@ -65,23 +65,102 @@ class QueueService {
      */
     static processVideoAnalysis(job) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             const { videoUrl, userId, requestId } = job.data;
             try {
                 job.updateProgress(10);
-                // Get video information
-                const videoInfo = yield streamingService_1.StreamingService.getVideoInfo(videoUrl);
-                job.updateProgress(50);
-                // Filter supported formats
-                const supportedFormats = videoInfo.formats.filter(format => format.ext && streamingService_1.StreamingService.isSupportedFormat(format.ext));
+                console.log(`Starting video analysis for: ${videoUrl}`);
+                // Get video information using fallback method (same as /api/info)
+                const videoInfo = yield streamingService_1.StreamingService.getVideoInfoWithFallback(videoUrl);
+                job.updateProgress(40);
+                // Enhanced format filtering and processing (same logic as /api/info)
+                const isYouTube = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
+                const isTikTok = videoUrl.includes('tiktok.com');
+                console.log(`Processing ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'other'} video with ${((_a = videoInfo.formats) === null || _a === void 0 ? void 0 : _a.length) || 0} total formats`);
+                let filteredFormats = ((_b = videoInfo.formats) === null || _b === void 0 ? void 0 : _b.filter(format => {
+                    // Basic validation
+                    if (!format.ext || !format.format_id)
+                        return false;
+                    if (!streamingService_1.StreamingService.isSupportedFormat(format.ext))
+                        return false;
+                    return true;
+                })) || [];
+                job.updateProgress(60);
+                // Apply platform-specific filtering
+                if (isYouTube) {
+                    // YouTube: Enhanced filtering for better quality options
+                    filteredFormats = filteredFormats.filter(format => {
+                        // Allow video-only formats for YouTube (they can be merged with audio)
+                        if (format.vcodec === 'none')
+                            return false; // Skip audio-only
+                        if (!format.resolution)
+                            return false;
+                        const resolutionParts = format.resolution.split('x');
+                        if (resolutionParts.length < 2)
+                            return false;
+                        const height = parseInt(resolutionParts[1]);
+                        return !isNaN(height) && height >= 360; // Minimum 360p
+                    });
+                }
+                else {
+                    // TikTok and other platforms: original logic (works fine)
+                    filteredFormats = filteredFormats.filter(format => {
+                        if (format.vcodec === 'none' || format.ext !== 'mp4')
+                            return false;
+                        if (!format.resolution)
+                            return false;
+                        const resolutionParts = format.resolution.split('x');
+                        if (resolutionParts.length < 2)
+                            return false;
+                        const height = parseInt(resolutionParts[1]);
+                        return !isNaN(height) && height >= 360; // Minimum 360p
+                    });
+                }
+                console.log(`After filtering: ${filteredFormats.length} formats available`);
                 job.updateProgress(80);
-                // Prepare result
+                // Sort formats intelligently (same as /api/info)
+                const sortedFormats = filteredFormats.sort((a, b) => {
+                    var _a, _b;
+                    // First priority: combined formats (video + audio) over video-only
+                    const aHasAudio = a.acodec && a.acodec !== 'none';
+                    const bHasAudio = b.acodec && b.acodec !== 'none';
+                    if (aHasAudio && !bHasAudio)
+                        return -1;
+                    if (!aHasAudio && bHasAudio)
+                        return 1;
+                    // Second priority: resolution (higher first)
+                    const aResolutionParts = ((_a = a.resolution) === null || _a === void 0 ? void 0 : _a.split('x')) || ['0', '0'];
+                    const bResolutionParts = ((_b = b.resolution) === null || _b === void 0 ? void 0 : _b.split('x')) || ['0', '0'];
+                    const aHeight = parseInt(aResolutionParts[1] || '0');
+                    const bHeight = parseInt(bResolutionParts[1] || '0');
+                    return bHeight - aHeight;
+                });
+                // Prepare result with enhanced format information
                 const result = {
                     requestId,
-                    videoInfo: Object.assign(Object.assign({}, videoInfo), { formats: supportedFormats }),
-                    supportedFormatsCount: supportedFormats.length,
+                    videoInfo: Object.assign(Object.assign({}, videoInfo), { formats: sortedFormats.map(format => {
+                            const hasAudio = !!(format.acodec && format.acodec !== 'none');
+                            return {
+                                format_id: format.format_id,
+                                format_note: format.format_note || this.getQualityLabel(format.resolution || 'unknown', hasAudio),
+                                ext: format.ext,
+                                resolution: format.resolution,
+                                vcodec: format.vcodec,
+                                acodec: format.acodec,
+                                filesize: format.filesize,
+                                fps: format.fps,
+                                has_audio: hasAudio,
+                                quality_label: this.getQualityLabel(format.resolution || 'unknown', hasAudio)
+                            };
+                        }) }),
+                    supportedFormatsCount: sortedFormats.length,
+                    platform: isYouTube ? 'youtube' : isTikTok ? 'tiktok' : 'other',
+                    total_formats: ((_c = videoInfo.formats) === null || _c === void 0 ? void 0 : _c.length) || 0,
+                    available_formats: sortedFormats.length,
                     analysisCompletedAt: new Date().toISOString(),
                 };
                 job.updateProgress(100);
+                console.log(`Video analysis completed. Found ${result.supportedFormatsCount} supported formats.`);
                 return result;
             }
             catch (error) {
@@ -89,6 +168,41 @@ class QueueService {
                 throw error;
             }
         });
+    }
+    /**
+     * Helper function to generate quality labels (same as /api/info)
+     */
+    static getQualityLabel(resolution, hasAudio) {
+        if (!resolution || resolution === 'unknown')
+            return 'Unknown quality';
+        // Handle resolution format like "1280x720" or just "720p"
+        const heightMatch = resolution.match(/(\d+)(?:x(\d+))?/);
+        if (!heightMatch)
+            return 'Unknown quality';
+        // If format is "1280x720", take the second number (720)
+        // If format is "720p", take the first number (720)
+        const height = heightMatch[2] ? parseInt(heightMatch[2]) : parseInt(heightMatch[1]);
+        if (isNaN(height))
+            return 'Unknown quality';
+        let qualityName = '';
+        if (height >= 2160)
+            qualityName = '4K';
+        else if (height >= 1440)
+            qualityName = '1440p';
+        else if (height >= 1080)
+            qualityName = '1080p';
+        else if (height >= 720)
+            qualityName = '720p';
+        else if (height >= 480)
+            qualityName = '480p';
+        else if (height >= 360)
+            qualityName = '360p';
+        else if (height >= 240)
+            qualityName = '240p';
+        else
+            qualityName = `${height}p`;
+        const audioStatus = hasAudio ? 'có âm thanh' : 'không có âm thanh';
+        return `${qualityName} (${audioStatus})`;
     }
     /**
      * Process streaming job (placeholder - actual streaming happens in real-time)

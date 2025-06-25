@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { PassThrough, Readable } from 'stream';
 import { StreamToken } from '../models';
 import contentDisposition from 'content-disposition';
+import CookieService from './cookieService';
 
 interface StreamingOptions {
   videoUrl: string;
@@ -102,24 +103,23 @@ class StreamingService {
    * Enhanced cookie detection with better fallback support
    */
   private static async detectCookieAuth(): Promise<CookieAuthResult> {
-    // First priority: Check for manual cookie file
+    // First priority: Check for manual cookie file using CookieService
     try {
-      const fs = require('fs');
-      if (fs.existsSync(this.COOKIES_FILE_PATH)) {
-        // Validate cookie file format
-        const cookieContent = fs.readFileSync(this.COOKIES_FILE_PATH, 'utf8');
-        if (cookieContent.includes('# HTTP Cookie File') || cookieContent.includes('# Netscape HTTP Cookie File')) {
-          console.log(`✅ Valid cookie file found at ${this.COOKIES_FILE_PATH}`);
+      const cookieExists = await CookieService.cookieFileExists();
+      if (cookieExists) {
+        const cookieInfo = await CookieService.getCurrentCookieInfo();
+        if (cookieInfo && cookieInfo.isValid) {
+          console.log(`✅ Valid cookie file found via CookieService`);
           return {
             success: true,
             method: 'file',
             error: undefined
           };
         } else {
-          console.log(`⚠️ Cookie file exists but format is invalid at ${this.COOKIES_FILE_PATH}`);
+          console.log(`⚠️ Cookie file exists but is invalid`);
         }
       } else {
-        console.log(`ℹ️ Cookie file not found at ${this.COOKIES_FILE_PATH}`);
+        console.log(`ℹ️ Cookie file not found via CookieService`);
       }
     } catch (error) {
       console.log(`❌ Cookie file check failed:`, error instanceof Error ? error.message : 'Unknown error');
@@ -242,8 +242,9 @@ class StreamingService {
             }
           }
         } else if (cookieAuth.method === 'file') {
-          ytdlpArgs.push('--cookies', this.COOKIES_FILE_PATH);
-          console.log(`🍪 Using cookie file for authentication`);
+          const cookieFilePath = CookieService.getCookieFilePath();
+          ytdlpArgs.push('--cookies', cookieFilePath);
+          console.log(`🍪 Using cookie file for authentication: ${cookieFilePath}`);
           return true;
         }
       }
@@ -282,10 +283,13 @@ class StreamingService {
           '--ignore-errors',
         ];
 
-        // Cookie authentication for YouTube
+        // Cookie authentication for all platforms (not just YouTube)
         let cookieAuthUsed = false;
-        if (isYouTube && useCookieAuth) {
+        if (useCookieAuth) {
           cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+          if (cookieAuthUsed) {
+            console.log(`🍪 Cookie authentication enabled for ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'platform'}`);
+          }
         }
 
         // Platform-specific optimizations with random user-agent
@@ -508,10 +512,13 @@ class StreamingService {
         '--ignore-errors',
       ];
 
-      // Cookie authentication for YouTube
+      // Cookie authentication for all platforms
       let cookieAuthUsed = false;
-      if (isYouTube && useCookies) {
+      if (useCookies) {
         cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+        if (cookieAuthUsed) {
+          console.log(`🍪 Cookie authentication enabled for streaming ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'platform'}`);
+        }
       }
 
       // Platform-specific optimizations with enhanced user-agent handling

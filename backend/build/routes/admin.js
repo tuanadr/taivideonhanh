@@ -16,6 +16,7 @@ const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const adminAuth_1 = require("../middleware/adminAuth");
 const adminService_1 = __importDefault(require("../services/adminService"));
+const cookieService_1 = __importDefault(require("../services/cookieService"));
 const router = (0, express_1.Router)();
 /**
  * Validation middleware
@@ -194,6 +195,109 @@ router.get('/profile', adminAuth_1.authenticateAdmin, (req, res) => __awaiter(vo
         res.status(500).json({
             error: 'Failed to fetch admin profile',
             code: 'ADMIN_PROFILE_FAILED'
+        });
+    }
+}));
+/**
+ * Cookie Management Routes
+ */
+/**
+ * GET /api/admin/cookie/info
+ * Get current cookie file information
+ */
+router.get('/cookie/info', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireAdminPermission)('system_settings'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const cookieInfo = yield cookieService_1.default.getCurrentCookieInfo();
+        res.json({
+            message: 'Cookie information retrieved successfully',
+            cookieInfo,
+            hasActiveCookie: !!cookieInfo
+        });
+    }
+    catch (error) {
+        console.error('Error fetching cookie info:', error);
+        res.status(500).json({
+            error: 'Failed to fetch cookie information',
+            code: 'COOKIE_INFO_FAILED'
+        });
+    }
+}));
+/**
+ * POST /api/admin/cookie/upload
+ * Upload new cookie file (expects base64 encoded content)
+ */
+router.post('/cookie/upload', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireAdminPermission)('system_settings'), (0, express_validator_1.body)('content').isString().withMessage('Cookie content is required'), (0, express_validator_1.body)('filename').isString().withMessage('Filename is required'), validateRequest, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { content, filename } = req.body;
+        // Decode base64 content
+        let fileBuffer;
+        try {
+            fileBuffer = Buffer.from(content, 'base64');
+        }
+        catch (error) {
+            return res.status(400).json({
+                error: 'Invalid file content encoding',
+                code: 'INVALID_ENCODING'
+            });
+        }
+        // Save the cookie file
+        const cookieInfo = yield cookieService_1.default.saveCookieFile(fileBuffer, filename);
+        // Test the cookie file
+        const testResult = yield cookieService_1.default.testCookieFile();
+        res.json({
+            message: 'Cookie file uploaded successfully',
+            cookieInfo,
+            testResult,
+            uploadedBy: (_a = req.admin) === null || _a === void 0 ? void 0 : _a.email
+        });
+    }
+    catch (error) {
+        console.error('Cookie upload error:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Cookie upload failed',
+            code: 'COOKIE_UPLOAD_FAILED'
+        });
+    }
+}));
+/**
+ * POST /api/admin/cookie/test
+ * Test current cookie file
+ */
+router.post('/cookie/test', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireAdminPermission)('system_settings'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const testResult = yield cookieService_1.default.testCookieFile();
+        res.json({
+            message: 'Cookie test completed',
+            testResult
+        });
+    }
+    catch (error) {
+        console.error('Cookie test error:', error);
+        res.status(500).json({
+            error: 'Cookie test failed',
+            code: 'COOKIE_TEST_FAILED'
+        });
+    }
+}));
+/**
+ * DELETE /api/admin/cookie
+ * Delete current cookie file
+ */
+router.delete('/cookie', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireAdminPermission)('system_settings'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        yield cookieService_1.default.deleteCookieFile();
+        res.json({
+            message: 'Cookie file deleted successfully',
+            deletedBy: (_a = req.admin) === null || _a === void 0 ? void 0 : _a.email
+        });
+    }
+    catch (error) {
+        console.error('Cookie deletion error:', error);
+        res.status(500).json({
+            error: 'Cookie deletion failed',
+            code: 'COOKIE_DELETE_FAILED'
         });
     }
 }));

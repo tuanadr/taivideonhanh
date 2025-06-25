@@ -15,6 +15,41 @@ const auth_1 = require("../middleware/auth");
 const streamingService_1 = require("../services/streamingService");
 const router = (0, express_1.Router)();
 /**
+ * Helper function to generate quality labels
+ */
+function getQualityLabel(resolution, hasAudio) {
+    if (!resolution || resolution === 'unknown')
+        return 'Unknown quality';
+    // Handle resolution format like "1280x720" or just "720p"
+    const heightMatch = resolution.match(/(\d+)(?:x(\d+))?/);
+    if (!heightMatch)
+        return 'Unknown quality';
+    // If format is "1280x720", take the second number (720)
+    // If format is "720p", take the first number (720)
+    const height = heightMatch[2] ? parseInt(heightMatch[2]) : parseInt(heightMatch[1]);
+    if (isNaN(height))
+        return 'Unknown quality';
+    let qualityName = '';
+    if (height >= 2160)
+        qualityName = '4K';
+    else if (height >= 1440)
+        qualityName = '1440p';
+    else if (height >= 1080)
+        qualityName = '1080p';
+    else if (height >= 720)
+        qualityName = '720p';
+    else if (height >= 480)
+        qualityName = '480p';
+    else if (height >= 360)
+        qualityName = '360p';
+    else if (height >= 240)
+        qualityName = '240p';
+    else
+        qualityName = `${height}p`;
+    const audioStatus = hasAudio ? 'có âm thanh' : 'không có âm thanh';
+    return `${qualityName} (${audioStatus})`;
+}
+/**
  * Validation middleware
  */
 const validateRequest = (req, res, next) => {
@@ -59,53 +94,97 @@ const videoInfoValidation = [
  * Get video information and available formats
  */
 router.post('/', auth_1.authenticate, videoInfoValidation, validateRequest, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
         const { url } = req.body;
         console.log('Getting video info for URL:', url);
         // Get video information using StreamingService with fallback
         const videoInfo = yield streamingService_1.StreamingService.getVideoInfoWithFallback(url);
-        // Filter and format the response for frontend compatibility
+        // Enhanced format filtering and processing
+        const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+        const isTikTok = url.includes('tiktok.com');
+        console.log(`Processing ${isYouTube ? 'YouTube' : isTikTok ? 'TikTok' : 'other'} video with ${((_a = videoInfo.formats) === null || _a === void 0 ? void 0 : _a.length) || 0} total formats`);
+        // Filter and process formats based on platform
+        let filteredFormats = videoInfo.formats || [];
+        if (isYouTube) {
+            // YouTube-specific filtering: more permissive to handle DASH streams
+            filteredFormats = filteredFormats.filter(format => {
+                // Must have video codec (not audio-only)
+                if (!format.vcodec || format.vcodec === 'none')
+                    return false;
+                // Accept multiple extensions for YouTube
+                const supportedExts = ['mp4', 'webm', 'mkv'];
+                if (!supportedExts.includes(format.ext))
+                    return false;
+                // Must have resolution info
+                if (!format.resolution)
+                    return false;
+                // Lower minimum resolution for more options
+                const resolutionParts = format.resolution.split('x');
+                if (resolutionParts.length < 2)
+                    return false;
+                const height = parseInt(resolutionParts[1]);
+                return !isNaN(height) && height >= 240; // Minimum 240p
+            });
+        }
+        else {
+            // TikTok and other platforms: original logic (works fine)
+            filteredFormats = filteredFormats.filter(format => {
+                if (format.vcodec === 'none' || format.ext !== 'mp4')
+                    return false;
+                if (!format.resolution)
+                    return false;
+                const resolutionParts = format.resolution.split('x');
+                if (resolutionParts.length < 2)
+                    return false;
+                const height = parseInt(resolutionParts[1]);
+                return !isNaN(height) && height >= 360; // Minimum 360p
+            });
+        }
+        console.log(`After filtering: ${filteredFormats.length} formats available`);
+        // Sort formats intelligently
+        const sortedFormats = filteredFormats.sort((a, b) => {
+            var _a, _b;
+            // First priority: combined formats (video + audio) over video-only
+            const aHasAudio = a.acodec && a.acodec !== 'none';
+            const bHasAudio = b.acodec && b.acodec !== 'none';
+            if (aHasAudio && !bHasAudio)
+                return -1;
+            if (!aHasAudio && bHasAudio)
+                return 1;
+            // Second priority: resolution (higher first)
+            const aResolutionParts = ((_a = a.resolution) === null || _a === void 0 ? void 0 : _a.split('x')) || ['0', '0'];
+            const bResolutionParts = ((_b = b.resolution) === null || _b === void 0 ? void 0 : _b.split('x')) || ['0', '0'];
+            const aHeight = parseInt(aResolutionParts[1] || '0');
+            const bHeight = parseInt(bResolutionParts[1] || '0');
+            return bHeight - aHeight;
+        });
+        // Format response with enhanced information
         const response = {
             title: videoInfo.title,
             thumbnail: videoInfo.thumbnail,
             duration: videoInfo.duration,
             uploader: videoInfo.uploader,
             upload_date: videoInfo.upload_date,
-            formats: videoInfo.formats
-                .filter(format => {
-                // Filter for video formats with reasonable quality and audio
-                if (format.vcodec === 'none' || format.ext !== 'mp4')
-                    return false;
-                if (!format.resolution)
-                    return false;
-                const height = parseInt(format.resolution.split('x')[1]);
-                return height >= 360; // Minimum 360p
+            platform: isYouTube ? 'youtube' : isTikTok ? 'tiktok' : 'other',
+            total_formats: ((_b = videoInfo.formats) === null || _b === void 0 ? void 0 : _b.length) || 0,
+            available_formats: sortedFormats.length,
+            formats: sortedFormats.map(format => {
+                const hasAudio = !!(format.acodec && format.acodec !== 'none');
+                const quality = getQualityLabel(format.resolution || 'unknown', hasAudio);
+                return {
+                    format_id: format.format_id,
+                    format_note: format.format_note || quality,
+                    ext: format.ext,
+                    resolution: format.resolution,
+                    vcodec: format.vcodec,
+                    acodec: format.acodec,
+                    filesize: format.filesize,
+                    fps: format.fps,
+                    has_audio: hasAudio,
+                    quality_label: quality
+                };
             })
-                // Prioritize formats with both video and audio
-                .sort((a, b) => {
-                var _a, _b;
-                // First priority: formats with both video and audio
-                const aHasAudio = a.acodec && a.acodec !== 'none';
-                const bHasAudio = b.acodec && b.acodec !== 'none';
-                if (aHasAudio && !bHasAudio)
-                    return -1;
-                if (!aHasAudio && bHasAudio)
-                    return 1;
-                // Second priority: resolution (higher first)
-                const aHeight = parseInt(((_a = a.resolution) === null || _a === void 0 ? void 0 : _a.split('x')[1]) || '0');
-                const bHeight = parseInt(((_b = b.resolution) === null || _b === void 0 ? void 0 : _b.split('x')[1]) || '0');
-                return bHeight - aHeight;
-            })
-                .map(format => ({
-                format_id: format.format_id,
-                format_note: format.format_note || `${format.resolution}${format.acodec && format.acodec !== 'none' ? ' (có âm thanh)' : ' (không có âm thanh)'}`,
-                ext: format.ext,
-                resolution: format.resolution,
-                vcodec: format.vcodec,
-                acodec: format.acodec,
-                filesize: format.filesize,
-                fps: format.fps
-            }))
         };
         res.json(response);
     }

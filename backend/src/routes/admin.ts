@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { body, query, param, validationResult } from 'express-validator';
 import { authenticateAdmin, requireAdminRole, requireAdminPermission, generateAdminToken } from '../middleware/adminAuth';
 import AdminService from '../services/adminService';
+import CookieService from '../services/cookieService';
 
 const router = Router();
 
@@ -231,6 +232,134 @@ router.get('/profile',
       res.status(500).json({
         error: 'Failed to fetch admin profile',
         code: 'ADMIN_PROFILE_FAILED'
+      });
+    }
+  }
+);
+
+/**
+ * Cookie Management Routes
+ */
+
+/**
+ * GET /api/admin/cookie/info
+ * Get current cookie file information
+ */
+router.get('/cookie/info',
+  authenticateAdmin,
+  requireAdminPermission('system_settings'),
+  async (req: Request, res: Response) => {
+    try {
+      const cookieInfo = await CookieService.getCurrentCookieInfo();
+
+      res.json({
+        message: 'Cookie information retrieved successfully',
+        cookieInfo,
+        hasActiveCookie: !!cookieInfo
+      });
+    } catch (error) {
+      console.error('Error fetching cookie info:', error);
+      res.status(500).json({
+        error: 'Failed to fetch cookie information',
+        code: 'COOKIE_INFO_FAILED'
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/cookie/upload
+ * Upload new cookie file (expects base64 encoded content)
+ */
+router.post('/cookie/upload',
+  authenticateAdmin,
+  requireAdminPermission('system_settings'),
+  body('content').isString().withMessage('Cookie content is required'),
+  body('filename').isString().withMessage('Filename is required'),
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const { content, filename } = req.body;
+
+      // Decode base64 content
+      let fileBuffer: Buffer;
+      try {
+        fileBuffer = Buffer.from(content, 'base64');
+      } catch (error) {
+        return res.status(400).json({
+          error: 'Invalid file content encoding',
+          code: 'INVALID_ENCODING'
+        });
+      }
+
+      // Save the cookie file
+      const cookieInfo = await CookieService.saveCookieFile(fileBuffer, filename);
+
+      // Test the cookie file
+      const testResult = await CookieService.testCookieFile();
+
+      res.json({
+        message: 'Cookie file uploaded successfully',
+        cookieInfo,
+        testResult,
+        uploadedBy: req.admin?.email
+      });
+
+    } catch (error) {
+      console.error('Cookie upload error:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Cookie upload failed',
+        code: 'COOKIE_UPLOAD_FAILED'
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/cookie/test
+ * Test current cookie file
+ */
+router.post('/cookie/test',
+  authenticateAdmin,
+  requireAdminPermission('system_settings'),
+  async (req: Request, res: Response) => {
+    try {
+      const testResult = await CookieService.testCookieFile();
+
+      res.json({
+        message: 'Cookie test completed',
+        testResult
+      });
+    } catch (error) {
+      console.error('Cookie test error:', error);
+      res.status(500).json({
+        error: 'Cookie test failed',
+        code: 'COOKIE_TEST_FAILED'
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/admin/cookie
+ * Delete current cookie file
+ */
+router.delete('/cookie',
+  authenticateAdmin,
+  requireAdminPermission('system_settings'),
+  async (req: Request, res: Response) => {
+    try {
+      await CookieService.deleteCookieFile();
+
+      res.json({
+        message: 'Cookie file deleted successfully',
+        deletedBy: req.admin?.email
+      });
+    } catch (error) {
+      console.error('Cookie deletion error:', error);
+      res.status(500).json({
+        error: 'Cookie deletion failed',
+        code: 'COOKIE_DELETE_FAILED'
       });
     }
   }

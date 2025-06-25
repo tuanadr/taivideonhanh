@@ -17,6 +17,7 @@ import { closeRedisConnections } from './config/redis';
 import SubscriptionService from './services/subscriptionService';
 import AdminService from './services/adminService';
 import LegalService from './services/legalService';
+import CookieService from './services/cookieService';
 
 // Import models to ensure they are registered
 import './models';
@@ -102,6 +103,10 @@ const startServer = async () => {
     // Initialize default legal documents
     await LegalService.initializeDefaultLegalDocuments();
     console.log('Default legal documents initialized.');
+
+    // Initialize cookie directories
+    await CookieService.initializeDirectories();
+    console.log('Cookie directories initialized.');
 
     // Start performance monitoring
     setInterval(async () => {
