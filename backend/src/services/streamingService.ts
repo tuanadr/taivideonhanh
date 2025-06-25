@@ -3,7 +3,6 @@ import { Request, Response } from 'express';
 import { PassThrough, Readable } from 'stream';
 import { StreamToken } from '../models';
 import contentDisposition from 'content-disposition';
-import { CookieManagementService } from './cookieManagementService';
 
 interface StreamingOptions {
   videoUrl: string;
@@ -229,23 +228,32 @@ class StreamingService {
    */
   private static async setupCookieAuth(ytdlpArgs: string[], url: string): Promise<boolean> {
     try {
-      // Detect platform from URL
-      const platform = CookieManagementService.detectPlatform(url);
+      // Simple platform detection for cookie file paths
+      let platform = '';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        platform = 'youtube';
+      } else if (url.includes('tiktok.com')) {
+        platform = 'tiktok';
+      } else if (url.includes('instagram.com')) {
+        platform = 'instagram';
+      } else if (url.includes('facebook.com')) {
+        platform = 'facebook';
+      }
 
       if (platform) {
         // Try platform-specific cookie file first
-        const platformCookieFile = CookieManagementService.getCookieFilePath(platform);
-        if (platformCookieFile) {
-          try {
-            const fs = require('fs');
-            if (fs.existsSync(platformCookieFile)) {
-              ytdlpArgs.push('--cookies', platformCookieFile);
-              console.log(`🍪 Using ${platform} cookies for authentication`);
-              return true;
-            }
-          } catch (error) {
-            console.log(`⚠️ Platform cookie file check failed for ${platform}:`, error);
+        const cookiesDir = process.env.COOKIES_DIR || '/app/cookies';
+        const platformCookieFile = `${cookiesDir}/${platform}-cookies.txt`;
+
+        try {
+          const fs = require('fs');
+          if (fs.existsSync(platformCookieFile)) {
+            ytdlpArgs.push('--cookies', platformCookieFile);
+            console.log(`🍪 Using ${platform} cookies for authentication`);
+            return true;
           }
+        } catch (error) {
+          console.log(`⚠️ Platform cookie file check failed for ${platform}:`, error);
         }
       }
 
@@ -270,23 +278,7 @@ class StreamingService {
         }
       }
 
-      // If no cookies available, try to auto-extract for supported platforms
-      if (platform && process.env.ENABLE_AUTO_COOKIE_EXTRACTION === 'true') {
-        console.log(`🔄 Attempting auto-extraction of cookies for ${platform}...`);
-        try {
-          await CookieManagementService.extractCookiesFromFirefox(platform);
 
-          // Retry with newly extracted cookies
-          const newCookieFile = CookieManagementService.getCookieFilePath(platform);
-          if (newCookieFile) {
-            ytdlpArgs.push('--cookies', newCookieFile);
-            console.log(`🍪 Using auto-extracted ${platform} cookies`);
-            return true;
-          }
-        } catch (extractionError) {
-          console.log(`⚠️ Auto-extraction failed for ${platform}:`, extractionError);
-        }
-      }
 
       return false;
     } catch (error) {
