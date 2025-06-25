@@ -25,18 +25,25 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        console.error('Login failed:', response.status, errorData);
+        toast.error(errorData.error || `Đăng nhập thất bại (${response.status})`);
+        return;
+      }
+
       const data = await response.json();
 
-      if (response.ok) {
+      if (data.token) {
         localStorage.setItem('adminToken', data.token);
         toast.success('Đăng nhập thành công!');
         router.push('/admin');
       } else {
-        toast.error(data.error || 'Đăng nhập thất bại');
+        toast.error('Không nhận được token từ server');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Có lỗi xảy ra khi đăng nhập');
+      toast.error('Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng.');
     } finally {
       setIsLoading(false);
     }

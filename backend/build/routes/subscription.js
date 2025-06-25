@@ -48,6 +48,14 @@ const cancelSubscriptionValidation = [
 router.get('/plans', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const plans = yield subscriptionService_1.default.getAvailablePlans();
+        // Set proper cache headers to prevent 304 Not Modified issues
+        res.set({
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'ETag': `"plans-${Date.now()}"`,
+            'Last-Modified': new Date().toUTCString()
+        });
         res.json({
             message: 'Subscription plans retrieved successfully',
             plans: plans.map(plan => ({

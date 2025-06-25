@@ -36,20 +36,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
 
       // Verify token with backend
-      const response = await fetch('/api/admin/profile', {
+      const response = await fetch('/api/admin/verify', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       if (response.ok) {
         setIsAuthenticated(true);
       } else {
+        console.error('Admin auth verification failed:', response.status, response.statusText);
         localStorage.removeItem('adminToken');
         router.push('/admin/login');
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      localStorage.removeItem('adminToken');
       router.push('/admin/login');
     } finally {
       setIsLoading(false);

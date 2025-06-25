@@ -19,13 +19,16 @@ class PaymentService {
   constructor() {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeSecretKey) {
-      console.warn('STRIPE_SECRET_KEY not found. Payment functionality will be limited.');
+      console.warn('⚠️  STRIPE_SECRET_KEY not found. Payment functionality will be limited.');
+      console.warn('   To enable full payment functionality, please set STRIPE_SECRET_KEY in your environment variables.');
+      console.warn('   Example: STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key_here');
       // Create a mock stripe instance for development
       this.stripe = {} as Stripe;
     } else {
       this.stripe = new Stripe(stripeSecretKey, {
         apiVersion: '2025-05-28.basil',
       });
+      console.log('✅ Stripe payment service initialized successfully');
     }
   }
 

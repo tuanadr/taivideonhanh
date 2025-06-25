@@ -39,7 +39,16 @@ const cancelSubscriptionValidation = [
 router.get('/plans', async (req: Request, res: Response) => {
   try {
     const plans = await SubscriptionService.getAvailablePlans();
-    
+
+    // Set proper cache headers to prevent 304 Not Modified issues
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'ETag': `"plans-${Date.now()}"`,
+      'Last-Modified': new Date().toUTCString()
+    });
+
     res.json({
       message: 'Subscription plans retrieved successfully',
       plans: plans.map(plan => ({

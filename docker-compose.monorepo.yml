@@ -74,7 +74,9 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
       
       # Authentication
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-here}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-here-change-in-production}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-your-jwt-access-secret-here}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-jwt-refresh-secret-here}
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-your-admin-jwt-secret-here}
       
       # Admin Configuration

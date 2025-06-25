@@ -216,6 +216,29 @@ router.get('/analytics/subscriptions',
 );
 
 /**
+ * GET /api/admin/verify
+ * Verify admin token
+ */
+router.get('/verify',
+  authenticateAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      res.json({
+        message: 'Admin token verified successfully',
+        admin: req.admin,
+        valid: true,
+      });
+    } catch (error) {
+      console.error('Error verifying admin token:', error);
+      res.status(500).json({
+        error: 'Failed to verify admin token',
+        code: 'ADMIN_VERIFY_FAILED'
+      });
+    }
+  }
+);
+
+/**
  * GET /api/admin/profile
  * Get admin profile
  */

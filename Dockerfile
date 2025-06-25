@@ -93,7 +93,7 @@ RUN chmod +x /usr/local/bin/setup-youtube-cookies.sh
 # Set environment variables for cookie authentication
 ENV YOUTUBE_COOKIES_PATH=/tmp/cookies/youtube-cookies.txt
 ENV CHROME_USER_DATA_DIR=/opt/chrome-profile
-ENV ENABLE_COOKIE_AUTH=true
+# Note: ENABLE_COOKIE_AUTH should be set via docker-compose or runtime environment
 
 # Expose port 80 (nginx sẽ route internally)
 EXPOSE 80

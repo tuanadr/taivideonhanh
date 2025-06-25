@@ -8,10 +8,14 @@ const nextConfig = {
 
   // API rewrites for monorepo container
   async rewrites() {
+    const apiUrl = process.env.NODE_ENV === 'production'
+      ? 'http://127.0.0.1:5000/api/:path*'
+      : 'http://localhost:5000/api/:path*';
+
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*',
+        destination: apiUrl,
       },
     ]
   },
