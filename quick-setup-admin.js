@@ -246,7 +246,7 @@ function printSetupSummary() {
   log('\n📋 Setup Summary', 'magenta');
   log('='.repeat(50), 'magenta');
   
-  const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@taivideonhanh.com';
+  const adminEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@taivideonhanh.vn';
   const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456';
   
   log('\n🔐 Admin Credentials:', 'bright');

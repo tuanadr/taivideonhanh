@@ -194,7 +194,7 @@ async function createDefaultAdmin() {
       }
     }
 
-    const defaultEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@taivideonhanh.com';
+    const defaultEmail = process.env.DEFAULT_ADMIN_EMAIL || 'admin@taivideonhanh.vn';
     const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123456';
 
     const admin = await Admin.create({

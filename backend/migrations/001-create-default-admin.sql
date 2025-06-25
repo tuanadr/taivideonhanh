@@ -41,7 +41,7 @@ CREATE TRIGGER update_admins_updated_at
 DO $$
 DECLARE
     admin_count INTEGER;
-    default_email VARCHAR(255) := 'admin@taivideonhanh.com';
+    default_email VARCHAR(255) := 'admin@taivideonhanh.vn';
     default_password_hash VARCHAR(255);
 BEGIN
     -- Check if any admin users exist
@@ -175,7 +175,7 @@ DO $$
 BEGIN
     RAISE NOTICE 'Admin migration completed successfully!';
     RAISE NOTICE 'Default admin credentials:';
-    RAISE NOTICE 'Email: admin@taivideonhanh.com';
+    RAISE NOTICE 'Email: admin@taivideonhanh.vn';
     RAISE NOTICE 'Password: admin123456';
     RAISE NOTICE 'Role: super_admin';
     RAISE NOTICE 'Permissions: user_management, subscription_management, payment_management, system_settings, analytics_view';
