@@ -359,11 +359,23 @@ app.post('/extract-cookies', async (req, res) => {
 });
 
 // Get platform configurations
-app.get('/platforms', (req, res) => {
-  res.json({
-    platforms: platformManager.getSupportedPlatforms(),
-    configurations: platformManager.getPlatformConfigurations()
-  });
+app.get('/platform-configs', (req, res) => {
+  try {
+    if (platformManager) {
+      res.json({
+        platforms: platformManager.getSupportedPlatforms(),
+        configurations: platformManager.getPlatformConfigurations()
+      });
+    } else {
+      res.json({
+        platforms: ['youtube', 'facebook', 'instagram', 'tiktok', 'twitter'],
+        configurations: {}
+      });
+    }
+  } catch (error) {
+    logger.error('Platform configs failed:', error);
+    res.status(500).json({ error: 'Failed to get platform configs' });
+  }
 });
 
 // Validate cookies for a platform
@@ -425,8 +437,8 @@ app.post('/auto-refresh', async (req, res) => {
   }
 });
 
-// VNC access info
-app.get('/vnc', (req, res) => {
+// VNC access detailed info
+app.get('/vnc-details', (req, res) => {
   res.json({
     vncUrl: 'http://localhost:6080/vnc.html?host=localhost&port=6080',
     instructions: [
@@ -479,12 +491,33 @@ process.on('SIGINT', async () => {
 
 // Start server
 async function startServer() {
+  console.log('🔄 Starting Firefox Cookie Service...');
+  console.log(`📡 Port: ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+
   await initializeServices();
-  
-  app.listen(PORT, '0.0.0.0', () => {
+
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🦊 Firefox Cookie Service running on port ${PORT}`);
+    console.log(`📡 API endpoints available at http://0.0.0.0:${PORT}`);
+    console.log(`🖥️ VNC interface available at http://localhost:6080`);
+
     logger.info(`🦊 Firefox Cookie Service running on port ${PORT}`);
     logger.info(`🌐 VNC access: http://localhost:6080/vnc.html`);
     logger.info(`📡 API docs: http://localhost:${PORT}/health`);
+
+    // Test endpoints
+    console.log('🧪 Available endpoints:');
+    console.log('  GET / - Service info');
+    console.log('  GET /health - Health check');
+    console.log('  GET /platforms - Supported platforms');
+    console.log('  GET /status - Service status');
+    console.log('  GET /vnc - VNC information');
+  });
+
+  server.on('error', (error) => {
+    console.error('❌ Server error:', error);
+    logger.error('Server error:', error);
   });
 }
 
