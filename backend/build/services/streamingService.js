@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StreamingService = void 0;
 const child_process_1 = require("child_process");
 const content_disposition_1 = __importDefault(require("content-disposition"));
+const cookieManagementService_1 = require("./cookieManagementService");
 class StreamingService {
     /**
      * Get a random User-Agent for better compatibility
@@ -167,11 +168,31 @@ class StreamingService {
         });
     }
     /**
-     * Smart cookie authentication setup
+     * Enhanced cookie authentication setup with multi-platform support
      */
-    static setupCookieAuth(ytdlpArgs) {
+    static setupCookieAuth(ytdlpArgs, url) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                // Detect platform from URL
+                const platform = cookieManagementService_1.CookieManagementService.detectPlatform(url);
+                if (platform) {
+                    // Try platform-specific cookie file first
+                    const platformCookieFile = cookieManagementService_1.CookieManagementService.getCookieFilePath(platform);
+                    if (platformCookieFile) {
+                        try {
+                            const fs = require('fs');
+                            if (fs.existsSync(platformCookieFile)) {
+                                ytdlpArgs.push('--cookies', platformCookieFile);
+                                console.log(`🍪 Using ${platform} cookies for authentication`);
+                                return true;
+                            }
+                        }
+                        catch (error) {
+                            console.log(`⚠️ Platform cookie file check failed for ${platform}:`, error);
+                        }
+                    }
+                }
+                // Fallback to original cookie detection logic
                 const cookieAuth = yield this.detectCookieAuth();
                 if (cookieAuth.success) {
                     if (cookieAuth.method === 'browser') {
@@ -187,8 +208,25 @@ class StreamingService {
                     }
                     else if (cookieAuth.method === 'file') {
                         ytdlpArgs.push('--cookies', this.COOKIES_FILE_PATH);
-                        console.log(`🍪 Using cookie file for authentication`);
+                        console.log(`🍪 Using fallback cookie file for authentication`);
                         return true;
+                    }
+                }
+                // If no cookies available, try to auto-extract for supported platforms
+                if (platform && process.env.ENABLE_AUTO_COOKIE_EXTRACTION === 'true') {
+                    console.log(`🔄 Attempting auto-extraction of cookies for ${platform}...`);
+                    try {
+                        yield cookieManagementService_1.CookieManagementService.extractCookiesFromFirefox(platform);
+                        // Retry with newly extracted cookies
+                        const newCookieFile = cookieManagementService_1.CookieManagementService.getCookieFilePath(platform);
+                        if (newCookieFile) {
+                            ytdlpArgs.push('--cookies', newCookieFile);
+                            console.log(`🍪 Using auto-extracted ${platform} cookies`);
+                            return true;
+                        }
+                    }
+                    catch (extractionError) {
+                        console.log(`⚠️ Auto-extraction failed for ${platform}:`, extractionError);
                     }
                 }
                 return false;
@@ -225,10 +263,10 @@ class StreamingService {
                         '--no-check-certificates',
                         '--ignore-errors',
                     ];
-                    // Cookie authentication for YouTube
+                    // Enhanced cookie authentication for all platforms
                     let cookieAuthUsed = false;
-                    if (isYouTube && useCookieAuth) {
-                        cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
+                    if (useCookieAuth) {
+                        cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs, url);
                     }
                     // Platform-specific optimizations with random user-agent
                     if (isYouTube) {
@@ -427,10 +465,10 @@ class StreamingService {
                     '--no-check-certificates',
                     '--ignore-errors',
                 ];
-                // Cookie authentication for YouTube
+                // Enhanced cookie authentication for all platforms
                 let cookieAuthUsed = false;
-                if (isYouTube && useCookies) {
-                    cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
+                if (useCookies) {
+                    cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs, videoUrl);
                 }
                 // Platform-specific optimizations with enhanced user-agent handling
                 if (isYouTube) {
@@ -700,7 +738,7 @@ class StreamingService {
                     '--ignore-errors',
                 ];
                 // Try cookie authentication first in fallback
-                const cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
+                const cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs, url);
                 ytdlpArgs.push('--extractor-args', 'youtube:skip=hls', // Consistent with main method
                 '--user-agent', this.getRandomUserAgent(), url);
                 console.log('YouTube fallback yt-dlp args:', ytdlpArgs);
