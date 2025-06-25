@@ -8,12 +8,17 @@ docker stop firefox-vnc-test 2>/dev/null || true
 docker rm firefox-vnc-test 2>/dev/null || true
 
 # Build and run container for testing
-echo "🏗️ Building with VNC fix Dockerfile..."
-docker build -f Dockerfile.vnc-fix -t firefox-vnc-test . --progress=plain
+echo "🏗️ Building with simple fix Dockerfile (no GPG issues)..."
+docker build -f Dockerfile.simple-fix -t firefox-vnc-test . --progress=plain
 
 if [ $? -ne 0 ]; then
-    echo "❌ Build failed, trying regular Dockerfile..."
-    docker build -t firefox-vnc-test . --progress=plain
+    echo "❌ Simple build failed, trying VNC fix Dockerfile..."
+    docker build -f Dockerfile.vnc-fix -t firefox-vnc-test . --progress=plain
+
+    if [ $? -ne 0 ]; then
+        echo "❌ VNC fix build failed, trying regular Dockerfile..."
+        docker build -t firefox-vnc-test . --progress=plain
+    fi
 fi
 
 echo "🚀 Starting test container..."
