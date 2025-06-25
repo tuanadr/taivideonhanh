@@ -17,11 +17,58 @@ const child_process_1 = require("child_process");
 const content_disposition_1 = __importDefault(require("content-disposition"));
 class StreamingService {
     /**
-     * Detect available cookie authentication methods for YouTube
+     * Get a random User-Agent for better compatibility
+     */
+    static getRandomUserAgent() {
+        const randomIndex = Math.floor(Math.random() * this.USER_AGENTS.length);
+        return this.USER_AGENTS[randomIndex];
+    }
+    /**
+     * Implement rate limiting to avoid being blocked
+     */
+    static enforceRateLimit() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const now = Date.now();
+            const timeSinceLastRequest = now - this.lastRequestTime;
+            if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+                const waitTime = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+                console.log(`⏱️ Rate limiting: waiting ${waitTime}ms before next request`);
+                yield new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+            this.lastRequestTime = Date.now();
+        });
+    }
+    /**
+     * Enhanced cookie detection with better fallback support
      */
     static detectCookieAuth() {
         return __awaiter(this, void 0, void 0, function* () {
-            // Try browser cookie extraction first (only on platforms that support it)
+            // First priority: Check for manual cookie file
+            try {
+                const fs = require('fs');
+                if (fs.existsSync(this.COOKIES_FILE_PATH)) {
+                    // Validate cookie file format
+                    const cookieContent = fs.readFileSync(this.COOKIES_FILE_PATH, 'utf8');
+                    if (cookieContent.includes('# HTTP Cookie File') || cookieContent.includes('# Netscape HTTP Cookie File')) {
+                        console.log(`✅ Valid cookie file found at ${this.COOKIES_FILE_PATH}`);
+                        return {
+                            success: true,
+                            method: 'file',
+                            error: undefined
+                        };
+                    }
+                    else {
+                        console.log(`⚠️ Cookie file exists but format is invalid at ${this.COOKIES_FILE_PATH}`);
+                    }
+                }
+                else {
+                    console.log(`ℹ️ Cookie file not found at ${this.COOKIES_FILE_PATH}`);
+                }
+            }
+            catch (error) {
+                console.log(`❌ Cookie file check failed:`, error instanceof Error ? error.message : 'Unknown error');
+            }
+            // Second priority: Try browser cookie extraction (only on supported platforms)
             const platform = process.platform;
             const supportedPlatforms = ['win32', 'darwin', 'linux'];
             if (supportedPlatforms.includes(platform)) {
@@ -47,24 +94,6 @@ class StreamingService {
             }
             else {
                 console.log(`⚠️ Platform ${platform} not supported for browser cookie extraction`);
-            }
-            // Try cookies file if browser extraction fails
-            try {
-                const fs = require('fs');
-                if (fs.existsSync(this.COOKIES_FILE_PATH)) {
-                    console.log(`✅ Cookie file found at ${this.COOKIES_FILE_PATH}`);
-                    return {
-                        success: true,
-                        method: 'file',
-                        error: undefined
-                    };
-                }
-                else {
-                    console.log(`ℹ️ Cookie file not found at ${this.COOKIES_FILE_PATH}`);
-                }
-            }
-            catch (error) {
-                console.log(`❌ Cookie file not accessible:`, error instanceof Error ? error.message : 'Unknown error');
             }
             console.log(`ℹ️ No cookie authentication methods available, proceeding without cookies`);
             return {
@@ -171,109 +200,189 @@ class StreamingService {
         });
     }
     /**
-     * Get video information using yt-dlp with enhanced error handling and platform-specific optimizations
+     * Enhanced video info extraction with retry logic and better error handling
      */
     static getVideoInfo(url_1) {
         return __awaiter(this, arguments, void 0, function* (url, useCookieAuth = true) {
+            // Enforce rate limiting
+            yield this.enforceRateLimit();
+            return this.getVideoInfoWithRetry(url, useCookieAuth, 0);
+        });
+    }
+    /**
+     * Internal method with retry logic
+     */
+    static getVideoInfoWithRetry(url, useCookieAuth, retryCount) {
+        return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                // Detect platform for optimized arguments
-                const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-                const isTikTok = url.includes('tiktok.com');
-                const ytdlpArgs = [
-                    '--dump-json',
-                    '--no-warnings',
-                    '--no-check-certificates',
-                    '--ignore-errors',
-                ];
-                // Cookie authentication for YouTube
-                let cookieAuthUsed = false;
-                if (isYouTube && useCookieAuth) {
-                    cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
-                }
-                // Platform-specific optimizations
-                if (isYouTube) {
-                    ytdlpArgs.push('--extractor-args', 'youtube:skip=dash,hls', '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-                }
-                else if (isTikTok) {
-                    ytdlpArgs.push('--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
-                }
-                ytdlpArgs.push(url);
-                console.log('yt-dlp getVideoInfo args:', ytdlpArgs);
-                const ytdlp = (0, child_process_1.spawn)('yt-dlp', ytdlpArgs);
-                let jsonData = '';
-                let errorData = '';
-                ytdlp.stdout.on('data', (data) => {
-                    jsonData += data.toString();
-                });
-                ytdlp.stderr.on('data', (data) => {
-                    errorData += data.toString();
-                });
-                ytdlp.on('close', (code) => {
-                    var _a;
-                    console.log(`yt-dlp getVideoInfo exit code: ${code}`);
-                    if (errorData) {
-                        console.log('yt-dlp getVideoInfo stderr:', errorData);
+                try {
+                    // Detect platform for optimized arguments
+                    const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+                    const isTikTok = url.includes('tiktok.com');
+                    const ytdlpArgs = [
+                        '--dump-json',
+                        '--no-warnings',
+                        '--no-check-certificates',
+                        '--ignore-errors',
+                    ];
+                    // Cookie authentication for YouTube
+                    let cookieAuthUsed = false;
+                    if (isYouTube && useCookieAuth) {
+                        cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
                     }
-                    if (code !== 0) {
-                        // Enhanced error handling for specific platforms
-                        let errorMessage = `Failed to fetch video info: ${errorData}`;
-                        if (isYouTube && errorData.includes('Sign in to confirm')) {
-                            if (cookieAuthUsed) {
-                                errorMessage = 'YouTube yêu cầu xác thực nâng cao. Cookies hiện tại không đủ quyền. Vui lòng đăng nhập YouTube trên trình duyệt và thử lại.';
+                    // Platform-specific optimizations with random user-agent
+                    if (isYouTube) {
+                        // Modified YouTube args to get more formats - only skip HLS, keep DASH
+                        ytdlpArgs.push('--extractor-args', 'youtube:skip=hls', // Keep DASH for quality options
+                        '--user-agent', this.getRandomUserAgent());
+                    }
+                    else if (isTikTok) {
+                        ytdlpArgs.push('--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+                    }
+                    else {
+                        ytdlpArgs.push('--user-agent', this.getRandomUserAgent());
+                    }
+                    ytdlpArgs.push(url);
+                    console.log(`yt-dlp getVideoInfo args (attempt ${retryCount + 1}):`, ytdlpArgs);
+                    const ytdlp = (0, child_process_1.spawn)('yt-dlp', ytdlpArgs);
+                    let jsonData = '';
+                    let errorData = '';
+                    ytdlp.stdout.on('data', (data) => {
+                        jsonData += data.toString();
+                    });
+                    ytdlp.stderr.on('data', (data) => {
+                        errorData += data.toString();
+                    });
+                    ytdlp.on('close', (code) => __awaiter(this, void 0, void 0, function* () {
+                        var _a;
+                        console.log(`yt-dlp getVideoInfo exit code: ${code} (attempt ${retryCount + 1})`);
+                        if (errorData) {
+                            console.log('yt-dlp getVideoInfo stderr:', errorData);
+                        }
+                        if (code !== 0) {
+                            // Check if we should retry
+                            const shouldRetry = this.shouldRetryError(errorData, isYouTube, isTikTok);
+                            if (shouldRetry && retryCount < this.MAX_RETRIES - 1) {
+                                console.log(`🔄 Retrying request (${retryCount + 1}/${this.MAX_RETRIES}) after ${this.RETRY_DELAYS[retryCount]}ms`);
+                                // Wait before retry
+                                setTimeout(() => __awaiter(this, void 0, void 0, function* () {
+                                    try {
+                                        const result = yield this.getVideoInfoWithRetry(url, useCookieAuth, retryCount + 1);
+                                        resolve(result);
+                                    }
+                                    catch (retryError) {
+                                        reject(retryError);
+                                    }
+                                }), this.RETRY_DELAYS[retryCount]);
+                                return;
                             }
-                            else {
-                                errorMessage = 'YouTube yêu cầu xác thực cookies. Vui lòng đăng nhập YouTube trên Chrome và thử lại. Nếu vẫn lỗi, hãy liên hệ hỗ trợ.';
-                            }
+                            // Enhanced error handling for specific platforms
+                            let errorMessage = this.getEnhancedErrorMessage(errorData, isYouTube, isTikTok, cookieAuthUsed);
+                            reject(new Error(errorMessage));
+                            return;
                         }
-                        else if (isYouTube && errorData.includes('cookies')) {
-                            errorMessage = 'Lỗi xác thực YouTube cookies. Vui lòng đảm bảo đã đăng nhập YouTube trên trình duyệt Chrome.';
+                        try {
+                            const info = JSON.parse(jsonData);
+                            resolve({
+                                title: info.title || 'Unknown Title',
+                                thumbnail: info.thumbnail || '',
+                                duration: info.duration,
+                                description: info.description,
+                                uploader: info.uploader,
+                                upload_date: info.upload_date,
+                                formats: ((_a = info.formats) === null || _a === void 0 ? void 0 : _a.map((f) => ({
+                                    format_id: f.format_id,
+                                    ext: f.ext,
+                                    resolution: f.resolution,
+                                    fps: f.fps,
+                                    filesize: f.filesize,
+                                    acodec: f.acodec,
+                                    vcodec: f.vcodec,
+                                    format_note: f.format_note,
+                                    url: f.url,
+                                }))) || [],
+                            });
                         }
-                        else if (isTikTok && errorData.includes('Unable to extract')) {
-                            errorMessage = 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
+                        catch (parseError) {
+                            console.error('JSON parse error:', parseError);
+                            reject(new Error('Failed to parse video info'));
                         }
-                        else if (errorData.includes('Video unavailable')) {
-                            errorMessage = 'Video không khả dụng hoặc đã bị xóa.';
-                        }
-                        else if (errorData.includes('Private video')) {
-                            errorMessage = 'Video này ở chế độ riêng tư.';
-                        }
-                        reject(new Error(errorMessage));
-                        return;
-                    }
-                    try {
-                        const info = JSON.parse(jsonData);
-                        resolve({
-                            title: info.title || 'Unknown Title',
-                            thumbnail: info.thumbnail || '',
-                            duration: info.duration,
-                            description: info.description,
-                            uploader: info.uploader,
-                            upload_date: info.upload_date,
-                            formats: ((_a = info.formats) === null || _a === void 0 ? void 0 : _a.map((f) => ({
-                                format_id: f.format_id,
-                                ext: f.ext,
-                                resolution: f.resolution,
-                                fps: f.fps,
-                                filesize: f.filesize,
-                                acodec: f.acodec,
-                                vcodec: f.vcodec,
-                                format_note: f.format_note,
-                                url: f.url,
-                            }))) || [],
-                        });
-                    }
-                    catch (parseError) {
-                        console.error('JSON parse error:', parseError);
-                        reject(new Error('Failed to parse video info'));
-                    }
-                });
-                // Set timeout
-                setTimeout(() => {
-                    ytdlp.kill('SIGTERM');
-                    reject(new Error('Video info extraction timeout'));
-                }, 45000); // Increased timeout for better reliability
+                    }));
+                    // Set timeout
+                    setTimeout(() => {
+                        ytdlp.kill('SIGTERM');
+                        reject(new Error('Video info extraction timeout'));
+                    }, 45000); // Increased timeout for better reliability
+                }
+                catch (error) {
+                    reject(error);
+                }
             }));
         });
+    }
+    /**
+     * Determine if an error should trigger a retry
+     */
+    static shouldRetryError(errorData, isYouTube, isTikTok) {
+        // Retry on network errors
+        if (errorData.includes('network') || errorData.includes('timeout') || errorData.includes('connection')) {
+            return true;
+        }
+        // Retry on rate limiting
+        if (errorData.includes('429') || errorData.includes('Too Many Requests')) {
+            return true;
+        }
+        // Retry on temporary YouTube issues
+        if (isYouTube && (errorData.includes('Sign in to confirm') ||
+            errorData.includes('HTTP Error 403') ||
+            errorData.includes('Playback on other websites has been disabled'))) {
+            return true;
+        }
+        // Don't retry on permanent errors
+        if (errorData.includes('Video unavailable') ||
+            errorData.includes('Private video') ||
+            errorData.includes('This video is not available')) {
+            return false;
+        }
+        return false;
+    }
+    /**
+     * Get enhanced error message based on error type and platform
+     */
+    static getEnhancedErrorMessage(errorData, isYouTube, isTikTok, cookieAuthUsed) {
+        if (isYouTube && errorData.includes('Sign in to confirm')) {
+            if (cookieAuthUsed) {
+                return 'YouTube yêu cầu xác thực nâng cao. Cookies hiện tại không đủ quyền hoặc đã hết hạn. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
+            }
+            else {
+                return 'YouTube yêu cầu xác thực cookies. Hệ thống đang cố gắng các phương pháp khác, vui lòng thử lại.';
+            }
+        }
+        else if (isYouTube && (errorData.includes('cookies') || errorData.includes('bot'))) {
+            return 'YouTube đang yêu cầu xác thực. Hệ thống sẽ thử các phương pháp khác để tải video.';
+        }
+        else if (isYouTube && errorData.includes('HTTP Error 403')) {
+            return 'Video YouTube bị hạn chế truy cập. Vui lòng thử video khác.';
+        }
+        else if (isYouTube && errorData.includes('Video unavailable')) {
+            return 'Video YouTube không khả dụng. Có thể video đã bị xóa hoặc bị hạn chế.';
+        }
+        else if (isTikTok && errorData.includes('Unable to extract')) {
+            return 'Không thể trích xuất video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
+        }
+        else if (errorData.includes('Video unavailable')) {
+            return 'Video không khả dụng hoặc đã bị xóa.';
+        }
+        else if (errorData.includes('Private video')) {
+            return 'Video này ở chế độ riêng tư.';
+        }
+        else if (errorData.includes('429') || errorData.includes('Too Many Requests')) {
+            return 'Quá nhiều yêu cầu. Vui lòng thử lại sau vài phút.';
+        }
+        else if (errorData.includes('network') || errorData.includes('timeout')) {
+            return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+        }
+        return `Không thể lấy thông tin video. Vui lòng thử lại sau hoặc kiểm tra URL.`;
     }
     /**
      * Stream video directly to client using yt-dlp
@@ -323,16 +432,17 @@ class StreamingService {
                 if (isYouTube && useCookies) {
                     cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
                 }
-                // Platform-specific optimizations
+                // Platform-specific optimizations with enhanced user-agent handling
                 if (isYouTube) {
-                    ytdlpArgs.push('--merge-output-format', 'mp4', '--audio-format', 'mp3', '--embed-audio', '--extractor-args', 'youtube:skip=dash,hls', '--user-agent', userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+                    ytdlpArgs.push('--merge-output-format', 'mp4', '--audio-format', 'mp3', '--embed-audio', '--extractor-args', 'youtube:skip=hls', // Keep DASH for quality options
+                    '--user-agent', userAgent || this.getRandomUserAgent());
                 }
                 else if (isTikTok) {
                     ytdlpArgs.push('--user-agent', userAgent || 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
                 }
                 else {
                     // Default for other platforms
-                    ytdlpArgs.push('--merge-output-format', 'mp4', '--audio-format', 'mp3', '--embed-audio');
+                    ytdlpArgs.push('--merge-output-format', 'mp4', '--audio-format', 'mp3', '--embed-audio', '--user-agent', userAgent || this.getRandomUserAgent());
                 }
                 // Add optional headers
                 if (userAgent && !isYouTube && !isTikTok) {
@@ -413,23 +523,8 @@ class StreamingService {
                         }
                         else {
                             console.error('yt-dlp process failed:', errorOutput);
-                            // Enhanced error messages based on platform and error type
-                            let userFriendlyError = 'Video streaming failed';
-                            if (isYouTube && errorOutput.includes('Sign in to confirm')) {
-                                userFriendlyError = 'YouTube yêu cầu xác thực. Video có thể bị hạn chế hoặc cần đăng nhập. Vui lòng thử video khác.';
-                            }
-                            else if (isTikTok && errorOutput.includes('Unable to extract')) {
-                                userFriendlyError = 'Không thể tải video TikTok. Video có thể bị riêng tư hoặc đã bị xóa.';
-                            }
-                            else if (errorOutput.includes('Video unavailable')) {
-                                userFriendlyError = 'Video không khả dụng hoặc đã bị xóa.';
-                            }
-                            else if (errorOutput.includes('Private video')) {
-                                userFriendlyError = 'Video này ở chế độ riêng tư.';
-                            }
-                            else if (errorOutput.includes('network')) {
-                                userFriendlyError = 'Lỗi kết nối mạng. Vui lòng thử lại sau.';
-                            }
+                            // Enhanced error messages using the same logic as getVideoInfo
+                            let userFriendlyError = this.getEnhancedErrorMessage(errorOutput, isYouTube, isTikTok, cookieAuthUsed);
                             if (!res.headersSent) {
                                 res.status(500).json({ error: userFriendlyError });
                             }
@@ -533,12 +628,12 @@ class StreamingService {
             catch (error) {
                 console.log('First attempt failed, trying fallback methods...');
                 if (isYouTube) {
-                    // YouTube fallback: try with different extractor args
+                    // YouTube enhanced fallback: try multiple strategies
                     try {
-                        return yield this.getVideoInfoYouTubeFallback(url);
+                        return yield this.getVideoInfoWithEnhancedFallback(url);
                     }
                     catch (fallbackError) {
-                        console.error('YouTube fallback also failed:', fallbackError);
+                        console.error('All YouTube fallback strategies failed:', fallbackError);
                         throw error; // Throw original error
                     }
                 }
@@ -557,6 +652,42 @@ class StreamingService {
         });
     }
     /**
+     * Enhanced YouTube fallback with multiple strategies
+     */
+    static getVideoInfoWithEnhancedFallback(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('Trying enhanced fallback strategies...');
+            const fallbackStrategies = [
+                {
+                    name: 'Standard fallback with cookies',
+                    method: () => this.getVideoInfoYouTubeFallback(url)
+                },
+                {
+                    name: 'No extractor args',
+                    method: () => this.tryBasicExtraction(url)
+                },
+                {
+                    name: 'Different user agent',
+                    method: () => this.tryWithDifferentUserAgent(url)
+                }
+            ];
+            for (const strategy of fallbackStrategies) {
+                try {
+                    console.log(`🔄 Trying strategy: ${strategy.name}`);
+                    const result = yield strategy.method();
+                    console.log(`✅ Success with strategy: ${strategy.name}`);
+                    return result;
+                }
+                catch (error) {
+                    console.log(`❌ Strategy failed: ${strategy.name} - ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
+                // Wait between attempts
+                yield new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            throw new Error('All enhanced fallback strategies failed');
+        });
+    }
+    /**
      * YouTube-specific fallback method with cookie authentication
      */
     static getVideoInfoYouTubeFallback(url) {
@@ -570,7 +701,8 @@ class StreamingService {
                 ];
                 // Try cookie authentication first in fallback
                 const cookieAuthUsed = yield this.setupCookieAuth(ytdlpArgs);
-                ytdlpArgs.push('--extractor-args', 'youtube:skip=dash', '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', url);
+                ytdlpArgs.push('--extractor-args', 'youtube:skip=hls', // Consistent with main method
+                '--user-agent', this.getRandomUserAgent(), url);
                 console.log('YouTube fallback yt-dlp args:', ytdlpArgs);
                 const ytdlp = (0, child_process_1.spawn)('yt-dlp', ytdlpArgs);
                 let jsonData = '';
@@ -683,6 +815,133 @@ class StreamingService {
             });
         });
     }
+    /**
+     * Try basic extraction without special args
+     */
+    static tryBasicExtraction(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                const ytdlpArgs = [
+                    '--dump-json',
+                    '--no-warnings',
+                    '--no-check-certificates',
+                    '--ignore-errors',
+                    '--user-agent', this.getRandomUserAgent(),
+                    url
+                ];
+                console.log('Basic extraction args:', ytdlpArgs);
+                const ytdlp = (0, child_process_1.spawn)('yt-dlp', ytdlpArgs);
+                let jsonData = '';
+                let errorData = '';
+                ytdlp.stdout.on('data', (data) => {
+                    jsonData += data.toString();
+                });
+                ytdlp.stderr.on('data', (data) => {
+                    errorData += data.toString();
+                });
+                ytdlp.on('close', (code) => {
+                    var _a;
+                    if (code !== 0) {
+                        reject(new Error(`Basic extraction failed: ${errorData}`));
+                        return;
+                    }
+                    try {
+                        const info = JSON.parse(jsonData);
+                        resolve({
+                            title: info.title || 'Unknown Title',
+                            thumbnail: info.thumbnail || '',
+                            duration: info.duration,
+                            description: info.description,
+                            uploader: info.uploader,
+                            upload_date: info.upload_date,
+                            formats: ((_a = info.formats) === null || _a === void 0 ? void 0 : _a.map((f) => ({
+                                format_id: f.format_id,
+                                ext: f.ext,
+                                resolution: f.resolution,
+                                fps: f.fps,
+                                filesize: f.filesize,
+                                acodec: f.acodec,
+                                vcodec: f.vcodec,
+                                format_note: f.format_note,
+                                url: f.url,
+                            }))) || [],
+                        });
+                    }
+                    catch (parseError) {
+                        reject(new Error('Failed to parse basic extraction result'));
+                    }
+                });
+                setTimeout(() => {
+                    ytdlp.kill('SIGTERM');
+                    reject(new Error('Basic extraction timeout'));
+                }, 30000);
+            });
+        });
+    }
+    /**
+     * Try extraction with different user agent
+     */
+    static tryWithDifferentUserAgent(url) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                const ytdlpArgs = [
+                    '--dump-json',
+                    '--no-warnings',
+                    '--no-check-certificates',
+                    '--ignore-errors',
+                    '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                    '--extractor-args', 'youtube:player_client=web',
+                    url
+                ];
+                console.log('Different user-agent args:', ytdlpArgs);
+                const ytdlp = (0, child_process_1.spawn)('yt-dlp', ytdlpArgs);
+                let jsonData = '';
+                let errorData = '';
+                ytdlp.stdout.on('data', (data) => {
+                    jsonData += data.toString();
+                });
+                ytdlp.stderr.on('data', (data) => {
+                    errorData += data.toString();
+                });
+                ytdlp.on('close', (code) => {
+                    var _a;
+                    if (code !== 0) {
+                        reject(new Error(`Different user-agent extraction failed: ${errorData}`));
+                        return;
+                    }
+                    try {
+                        const info = JSON.parse(jsonData);
+                        resolve({
+                            title: info.title || 'Unknown Title',
+                            thumbnail: info.thumbnail || '',
+                            duration: info.duration,
+                            description: info.description,
+                            uploader: info.uploader,
+                            upload_date: info.upload_date,
+                            formats: ((_a = info.formats) === null || _a === void 0 ? void 0 : _a.map((f) => ({
+                                format_id: f.format_id,
+                                ext: f.ext,
+                                resolution: f.resolution,
+                                fps: f.fps,
+                                filesize: f.filesize,
+                                acodec: f.acodec,
+                                vcodec: f.vcodec,
+                                format_note: f.format_note,
+                                url: f.url,
+                            }))) || [],
+                        });
+                    }
+                    catch (parseError) {
+                        reject(new Error('Failed to parse different user-agent result'));
+                    }
+                });
+                setTimeout(() => {
+                    ytdlp.kill('SIGTERM');
+                    reject(new Error('Different user-agent extraction timeout'));
+                }, 30000);
+            });
+        });
+    }
 }
 exports.StreamingService = StreamingService;
 StreamingService.DEFAULT_BUFFER_SIZE = 64 * 1024; // 64KB
@@ -690,4 +949,18 @@ StreamingService.DEFAULT_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 StreamingService.SUPPORTED_FORMATS = ['mp4', 'webm', 'mkv', 'avi', 'mov', 'm4a', 'mp3', 'wav'];
 StreamingService.SUPPORTED_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
 StreamingService.COOKIES_FILE_PATH = process.env.YOUTUBE_COOKIES_PATH || '/tmp/youtube-cookies.txt';
+// Enhanced User-Agent rotation for better YouTube compatibility
+StreamingService.USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+];
+// Rate limiting and retry configuration
+StreamingService.MAX_RETRIES = 3;
+StreamingService.RETRY_DELAYS = [1000, 3000, 5000]; // milliseconds
+StreamingService.lastRequestTime = 0;
+StreamingService.MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
 exports.default = StreamingService;

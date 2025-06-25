@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { PassThrough, Readable } from 'stream';
 import { StreamToken } from '../models';
 import contentDisposition from 'content-disposition';
+import { CookieManagementService } from './cookieManagementService';
 
 interface StreamingOptions {
   videoUrl: string;
@@ -224,10 +225,31 @@ class StreamingService {
   }
 
   /**
-   * Smart cookie authentication setup
+   * Enhanced cookie authentication setup with multi-platform support
    */
-  private static async setupCookieAuth(ytdlpArgs: string[]): Promise<boolean> {
+  private static async setupCookieAuth(ytdlpArgs: string[], url: string): Promise<boolean> {
     try {
+      // Detect platform from URL
+      const platform = CookieManagementService.detectPlatform(url);
+
+      if (platform) {
+        // Try platform-specific cookie file first
+        const platformCookieFile = CookieManagementService.getCookieFilePath(platform);
+        if (platformCookieFile) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(platformCookieFile)) {
+              ytdlpArgs.push('--cookies', platformCookieFile);
+              console.log(`🍪 Using ${platform} cookies for authentication`);
+              return true;
+            }
+          } catch (error) {
+            console.log(`⚠️ Platform cookie file check failed for ${platform}:`, error);
+          }
+        }
+      }
+
+      // Fallback to original cookie detection logic
       const cookieAuth = await this.detectCookieAuth();
 
       if (cookieAuth.success) {
@@ -243,8 +265,26 @@ class StreamingService {
           }
         } else if (cookieAuth.method === 'file') {
           ytdlpArgs.push('--cookies', this.COOKIES_FILE_PATH);
-          console.log(`🍪 Using cookie file for authentication`);
+          console.log(`🍪 Using fallback cookie file for authentication`);
           return true;
+        }
+      }
+
+      // If no cookies available, try to auto-extract for supported platforms
+      if (platform && process.env.ENABLE_AUTO_COOKIE_EXTRACTION === 'true') {
+        console.log(`🔄 Attempting auto-extraction of cookies for ${platform}...`);
+        try {
+          await CookieManagementService.extractCookiesFromFirefox(platform);
+
+          // Retry with newly extracted cookies
+          const newCookieFile = CookieManagementService.getCookieFilePath(platform);
+          if (newCookieFile) {
+            ytdlpArgs.push('--cookies', newCookieFile);
+            console.log(`🍪 Using auto-extracted ${platform} cookies`);
+            return true;
+          }
+        } catch (extractionError) {
+          console.log(`⚠️ Auto-extraction failed for ${platform}:`, extractionError);
         }
       }
 
@@ -282,10 +322,10 @@ class StreamingService {
           '--ignore-errors',
         ];
 
-        // Cookie authentication for YouTube
+        // Enhanced cookie authentication for all platforms
         let cookieAuthUsed = false;
-        if (isYouTube && useCookieAuth) {
-          cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+        if (useCookieAuth) {
+          cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs, url);
         }
 
         // Platform-specific optimizations with random user-agent
@@ -508,10 +548,10 @@ class StreamingService {
         '--ignore-errors',
       ];
 
-      // Cookie authentication for YouTube
+      // Enhanced cookie authentication for all platforms
       let cookieAuthUsed = false;
-      if (isYouTube && useCookies) {
-        cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+      if (useCookies) {
+        cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs, videoUrl);
       }
 
       // Platform-specific optimizations with enhanced user-agent handling
@@ -819,7 +859,7 @@ class StreamingService {
       ];
 
       // Try cookie authentication first in fallback
-      const cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs);
+      const cookieAuthUsed = await this.setupCookieAuth(ytdlpArgs, url);
 
       ytdlpArgs.push(
         '--extractor-args', 'youtube:skip=hls', // Consistent with main method
