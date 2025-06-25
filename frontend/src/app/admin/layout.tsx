@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
   Cookie,
   LogOut,
   Menu,
@@ -22,10 +22,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Check if current page is a login page (should not require authentication)
+  const isLoginPage = pathname === '/admin/login' || pathname === '/admin/simple-login';
 
   useEffect(() => {
+    // Skip auth check for login pages
+    if (isLoginPage) {
+      setIsLoading(false);
+      return;
+    }
+
     checkAdminAuth();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isLoginPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkAdminAuth = async () => {
     try {
@@ -64,10 +74,33 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/admin/login');
   };
 
+  // For login pages, render children directly without authentication check
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '2px solid #e5e7eb',
+          borderTop: '2px solid #2563eb',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
