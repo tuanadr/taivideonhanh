@@ -796,7 +796,7 @@ class StreamingService {
         console.log(`✅ Success with strategy: ${strategy.name}`);
         return result;
       } catch (error) {
-        console.log(`❌ Strategy failed: ${strategy.name} - ${error.message}`);
+        console.log(`❌ Strategy failed: ${strategy.name} - ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
       // Wait between attempts
