@@ -67,8 +67,7 @@ const nextConfig = {
 
   // Experimental features for better performance
   experimental: {
-    // Enable app directory for admin routes
-    appDir: true,
+    // appDir is now stable in Next.js 14, no need to enable
     // Optimize CSS - disabled due to critters issue
     // optimizeCss: true,
   },
