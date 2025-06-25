@@ -2,23 +2,26 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('admin@taivideonhanh.vn');
+  const [password, setPassword] = useState('admin123456');
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const router = useRouter();
 
   // Debug logging
-  console.log('AdminLoginPage rendered');
+  console.log('AdminLoginPage rendered at:', new Date().toISOString());
+  console.log('Current URL:', window?.location?.href);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setMessage('Đang đăng nhập...');
 
     try {
+      console.log('Attempting login with:', { email, password: '***' });
+
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
@@ -27,123 +30,175 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
         console.error('Login failed:', response.status, errorData);
-        alert(errorData.error || `Đăng nhập thất bại (${response.status})`);
+        setMessage(`❌ Lỗi: ${errorData.error || `Đăng nhập thất bại (${response.status})`}`);
         return;
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (data.token) {
         localStorage.setItem('adminToken', data.token);
-        alert('Đăng nhập thành công!');
-        router.push('/admin');
+        setMessage('✅ Đăng nhập thành công! Đang chuyển hướng...');
+        setTimeout(() => {
+          router.push('/admin');
+        }, 1000);
       } else {
-        alert('Không nhận được token từ server');
+        setMessage('❌ Không nhận được token từ server');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng.');
+      setMessage(`❌ Lỗi kết nối: ${error}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Đăng nhập Admin
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Truy cập vào bảng điều khiển quản trị
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f9fafb',
+      padding: '20px'
+    }}>
+      <div style={{
+        maxWidth: '400px',
+        width: '100%',
+        backgroundColor: 'white',
+        padding: '30px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#111827',
+            margin: '0 0 10px 0'
+          }}>
+            🔐 Admin Login
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            margin: '0'
+          }}>
+            Truy cập bảng điều khiển quản trị
           </p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Nhập email admin"
-                />
-              </div>
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Mật khẩu
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Nhập mật khẩu"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '5px'
+            }}>
+              📧 Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="admin@taivideonhanh.vn"
+            />
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Đang đăng nhập...
-                </div>
-              ) : (
-                'Đăng nhập'
-              )}
-            </button>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '5px'
+            }}>
+              🔑 Mật khẩu
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                boxSizing: 'border-box'
+              }}
+              placeholder="admin123456"
+            />
           </div>
 
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Chỉ dành cho quản trị viên hệ thống
-            </p>
-          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: isLoading ? '#9ca3af' : '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            {isLoading ? '⏳ Đang đăng nhập...' : '🚀 Đăng nhập'}
+          </button>
         </form>
+
+        {message && (
+          <div style={{
+            marginTop: '20px',
+            padding: '12px',
+            backgroundColor: message.includes('✅') ? '#d1fae5' : '#fee2e2',
+            border: `1px solid ${message.includes('✅') ? '#a7f3d0' : '#fecaca'}`,
+            borderRadius: '6px',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            {message}
+          </div>
+        )}
+
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          backgroundColor: '#f3f4f6',
+          borderRadius: '6px',
+          fontSize: '12px',
+          color: '#6b7280'
+        }}>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>🔧 Debug Info:</h4>
+          <p style={{ margin: '5px 0' }}><strong>API URL:</strong> /api/admin/login</p>
+          <p style={{ margin: '5px 0' }}><strong>Default Email:</strong> admin@taivideonhanh.vn</p>
+          <p style={{ margin: '5px 0' }}><strong>Default Password:</strong> admin123456</p>
+          <p style={{ margin: '5px 0' }}><strong>Environment:</strong> {typeof window !== 'undefined' ? 'client' : 'server'}</p>
+          <p style={{ margin: '5px 0' }}><strong>Timestamp:</strong> {new Date().toLocaleString()}</p>
+        </div>
       </div>
     </div>
   );
