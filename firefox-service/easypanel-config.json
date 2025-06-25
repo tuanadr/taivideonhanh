@@ -1,0 +1,181 @@
+{
+  "name": "firefox-cookie-service",
+  "displayName": "Firefox Cookie Service",
+  "description": "Firefox-based cookie management service for video downloaders",
+  "version": "1.0.0",
+  "category": "Utilities",
+  "logo": "https://raw.githubusercontent.com/mozilla/firefox-browser-logos/master/firefox/firefox_logo-only_RGB.png",
+  
+  "services": [
+    {
+      "name": "firefox-service",
+      "image": {
+        "type": "build",
+        "context": ".",
+        "dockerfile": "Dockerfile"
+      },
+      "environment": [
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "key": "PORT",
+          "value": "3000"
+        },
+        {
+          "key": "DISPLAY",
+          "value": ":99"
+        },
+        {
+          "key": "FIREFOX_PROFILE_PATH",
+          "value": "/app/firefox-profile"
+        },
+        {
+          "key": "COOKIES_PATH",
+          "value": "/app/cookies"
+        },
+        {
+          "key": "VNC_PASSWORD",
+          "value": "firefox123"
+        },
+        {
+          "key": "ALLOWED_ORIGINS",
+          "value": "https://taivideonhanh.vn,http://localhost:5000"
+        }
+      ],
+      "ports": [
+        {
+          "published": 3000,
+          "target": 3000,
+          "protocol": "tcp"
+        },
+        {
+          "published": 6080,
+          "target": 6080,
+          "protocol": "tcp"
+        }
+      ],
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "firefox-profile",
+          "target": "/app/firefox-profile"
+        },
+        {
+          "type": "volume",
+          "source": "firefox-cookies",
+          "target": "/app/cookies"
+        },
+        {
+          "type": "volume",
+          "source": "firefox-logs",
+          "target": "/app/logs"
+        }
+      ],
+      "deploy": {
+        "resources": {
+          "limits": {
+            "memory": "4G",
+            "cpus": "2.0"
+          },
+          "reservations": {
+            "memory": "1G",
+            "cpus": "0.5"
+          }
+        }
+      },
+      "healthcheck": {
+        "test": ["CMD", "curl", "-f", "http://localhost:3000/health"],
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "40s"
+      },
+      "restart": "unless-stopped",
+      "security_opt": ["seccomp:unconfined"],
+      "shm_size": "2gb"
+    }
+  ],
+  
+  "volumes": [
+    {
+      "name": "firefox-profile",
+      "driver": "local"
+    },
+    {
+      "name": "firefox-cookies",
+      "driver": "local"
+    },
+    {
+      "name": "firefox-logs",
+      "driver": "local"
+    }
+  ],
+  
+  "networks": [
+    {
+      "name": "firefox-network",
+      "driver": "bridge"
+    }
+  ],
+  
+  "domains": [
+    {
+      "host": "firefox-cookies.taivideonhanh.vn",
+      "port": 3000,
+      "https": true
+    },
+    {
+      "host": "firefox-vnc.taivideonhanh.vn",
+      "port": 6080,
+      "https": true
+    }
+  ],
+  
+  "instructions": {
+    "setup": [
+      "1. Deploy the Firefox Cookie Service on EasyPanel",
+      "2. Access the VNC interface at https://firefox-vnc.taivideonhanh.vn",
+      "3. Login to video platforms manually through the Firefox browser",
+      "4. Use the API at https://firefox-cookies.taivideonhanh.vn to extract cookies",
+      "5. Configure your main app to use the extracted cookies"
+    ],
+    "usage": [
+      "API Endpoints:",
+      "- GET /health - Service health check",
+      "- GET /status - Service status and active sessions",
+      "- POST /extract-cookies - Extract cookies for a platform",
+      "- GET /platforms - List supported platforms",
+      "- POST /validate-cookies/:platform - Validate cookies",
+      "- GET /vnc - VNC access information",
+      "",
+      "VNC Access:",
+      "- URL: https://firefox-vnc.taivideonhanh.vn",
+      "- Password: firefox123 (configurable)",
+      "- Use this to manually login to video platforms"
+    ],
+    "integration": [
+      "To integrate with your main app:",
+      "1. Set FIREFOX_SERVICE_URL=https://firefox-cookies.taivideonhanh.vn",
+      "2. Use CookieManagementService.extractCookiesFromFirefox()",
+      "3. Enable auto-refresh with ENABLE_AUTO_COOKIE_EXTRACTION=true"
+    ]
+  },
+  
+  "requirements": {
+    "memory": "4GB minimum, 8GB recommended",
+    "cpu": "2 cores minimum",
+    "storage": "10GB for profiles and cookies",
+    "network": "Internet access required for video platforms"
+  },
+  
+  "security": {
+    "notes": [
+      "VNC interface should be protected with strong authentication",
+      "Consider using VPN or IP restrictions for VNC access",
+      "Cookie files contain sensitive authentication data",
+      "Regular cookie refresh is recommended for security"
+    ]
+  }
+}
