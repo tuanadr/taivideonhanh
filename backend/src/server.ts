@@ -83,30 +83,40 @@ app.get('/api/download/test', (req: Request, res: Response) => {
 
 const startServer = async () => {
   try {
+    console.log('🚀 Starting taivideonhanh backend server...');
+    console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔧 Port: ${port}`);
+
     // Initialize database
+    console.log('🗄️  Connecting to database...');
     await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
+    console.log('✅ Database connection has been established successfully.');
     await sequelize.sync(); // Sync all models
 
     // Initialize queue workers
+    console.log('📦 Initializing queue workers...');
     await QueueService.initializeWorkers();
-    console.log('Queue workers initialized successfully.');
+    console.log('✅ Queue workers initialized successfully.');
 
     // Initialize default subscription plans
+    console.log('💳 Initializing subscription plans...');
     await SubscriptionService.initializeDefaultPlans();
-    console.log('Default subscription plans initialized.');
+    console.log('✅ Default subscription plans initialized.');
 
     // Initialize default admin user
+    console.log('👤 Initializing admin user...');
     await AdminService.initializeDefaultAdmin();
-    console.log('Default admin user initialized.');
+    console.log('✅ Default admin user initialized.');
 
     // Initialize default legal documents
+    console.log('📄 Initializing legal documents...');
     await LegalService.initializeDefaultLegalDocuments();
-    console.log('Default legal documents initialized.');
+    console.log('✅ Default legal documents initialized.');
 
     // Initialize cookie directories
+    console.log('🍪 Initializing cookie directories...');
     await CookieService.initializeDirectories();
-    console.log('Cookie directories initialized.');
+    console.log('✅ Cookie directories initialized.');
 
     // Start performance monitoring
     setInterval(async () => {
@@ -120,32 +130,53 @@ const startServer = async () => {
     }, 60 * 60 * 1000); // Cleanup every hour
 
     app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
+      console.log('🎉 Server startup completed successfully!');
+      console.log(`🌐 Server is running on port ${port}`);
+      console.log(`📊 Health check: http://localhost:${port}/api/health`);
+      console.log(`🔐 Admin login: http://localhost:${port}/api/admin/login`);
+      console.log(`💰 Subscription plans: http://localhost:${port}/api/subscription/plans`);
+
+      // Log configuration status
+      console.log('\n📋 Configuration Status:');
+      console.log(`   JWT Secret: ${process.env.JWT_SECRET ? '✅ Configured' : '❌ Missing'}`);
+      console.log(`   Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Configured' : '⚠️  Not configured'}`);
+      console.log(`   Cookie Auth: ${process.env.ENABLE_COOKIE_AUTH === 'true' ? '✅ Enabled' : '❌ Disabled'}`);
+      console.log(`   Admin Email: ${process.env.DEFAULT_ADMIN_EMAIL || '❌ Not set'}`);
     });
   } catch (error) {
-    console.error('Unable to start server:', error);
+    console.error('❌ Unable to start server:', error);
     process.exit(1);
   }
 };
 
 // Graceful shutdown handling
 const gracefulShutdown = async (signal: string) => {
-  console.log(`Received ${signal}. Starting graceful shutdown...`);
+  console.log(`🔄 Received ${signal}. Starting graceful shutdown...`);
 
   try {
+    // Set a timeout for graceful shutdown
+    const shutdownTimeout = setTimeout(() => {
+      console.error('⚠️  Graceful shutdown timeout. Forcing exit...');
+      process.exit(1);
+    }, 30000); // 30 seconds timeout
+
     // Close queue workers and connections
+    console.log('📦 Shutting down queue workers...');
     await QueueService.shutdown();
 
     // Close Redis connections
+    console.log('🔴 Closing Redis connections...');
     await closeRedisConnections();
 
     // Close database connection
+    console.log('🗄️  Closing database connection...');
     await sequelize.close();
 
-    console.log('Graceful shutdown completed');
+    clearTimeout(shutdownTimeout);
+    console.log('✅ Graceful shutdown completed successfully');
     process.exit(0);
   } catch (error) {
-    console.error('Error during graceful shutdown:', error);
+    console.error('❌ Error during graceful shutdown:', error);
     process.exit(1);
   }
 };

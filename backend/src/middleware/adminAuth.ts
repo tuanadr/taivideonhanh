@@ -38,9 +38,10 @@ export const authenticateAdmin = async (req: Request, res: Response, next: NextF
     }
 
     const token = authHeader.substring(7);
-    const jwtSecret = process.env.JWT_SECRET;
-    
+    const jwtSecret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+
     if (!jwtSecret) {
+      console.error('JWT configuration missing. Please set JWT_SECRET, ADMIN_JWT_SECRET, or JWT_ACCESS_SECRET');
       return res.status(500).json({
         error: 'JWT secret not configured',
         code: 'JWT_SECRET_MISSING'
@@ -157,7 +158,7 @@ export const requireAdminPermission = (permission: string) => {
  * Generate admin JWT token
  */
 export const generateAdminToken = (admin: any): string => {
-  const jwtSecret = process.env.JWT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET || process.env.ADMIN_JWT_SECRET || process.env.JWT_ACCESS_SECRET;
   if (!jwtSecret) {
     throw new Error('JWT secret not configured');
   }

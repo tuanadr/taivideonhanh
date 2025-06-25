@@ -30,11 +30,17 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         services: {
             database: 'unknown',
             redis: 'unknown',
+            stripe: process.env.STRIPE_SECRET_KEY ? 'configured' : 'not_configured',
         },
         memory: {
             used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
             total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
             external: Math.round(process.memoryUsage().external / 1024 / 1024),
+        },
+        config: {
+            cookieAuth: process.env.ENABLE_COOKIE_AUTH === 'true',
+            jwtConfigured: !!process.env.JWT_SECRET,
+            adminConfigured: !!process.env.DEFAULT_ADMIN_EMAIL,
         },
     };
     try {
