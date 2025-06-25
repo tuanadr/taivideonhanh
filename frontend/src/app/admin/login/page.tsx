@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
@@ -11,6 +10,9 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Debug logging
+  console.log('AdminLoginPage rendered');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ export default function AdminLoginPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
         console.error('Login failed:', response.status, errorData);
-        toast.error(errorData.error || `Đăng nhập thất bại (${response.status})`);
+        alert(errorData.error || `Đăng nhập thất bại (${response.status})`);
         return;
       }
 
@@ -36,14 +38,14 @@ export default function AdminLoginPage() {
 
       if (data.token) {
         localStorage.setItem('adminToken', data.token);
-        toast.success('Đăng nhập thành công!');
+        alert('Đăng nhập thành công!');
         router.push('/admin');
       } else {
-        toast.error('Không nhận được token từ server');
+        alert('Không nhận được token từ server');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng.');
+      alert('Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng.');
     } finally {
       setIsLoading(false);
     }
