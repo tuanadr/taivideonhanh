@@ -7,6 +7,9 @@ interface SubscriptionPlanAttributes {
   price: number;
   currency: string;
   duration_days: number;
+  billing_cycle: 'monthly' | 'annual';
+  discount_percentage: number;
+  stripe_price_id: string;
   features: string[];
   max_downloads_per_day: number;
   max_concurrent_streams: number;
@@ -16,7 +19,7 @@ interface SubscriptionPlanAttributes {
   updated_at: Date;
 }
 
-interface SubscriptionPlanCreationAttributes extends Optional<SubscriptionPlanAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active'> {}
+interface SubscriptionPlanCreationAttributes extends Optional<SubscriptionPlanAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'discount_percentage'> {}
 
 class SubscriptionPlan extends Model<SubscriptionPlanAttributes, SubscriptionPlanCreationAttributes> implements SubscriptionPlanAttributes {
   public id!: string;
@@ -24,6 +27,9 @@ class SubscriptionPlan extends Model<SubscriptionPlanAttributes, SubscriptionPla
   public price!: number;
   public currency!: string;
   public duration_days!: number;
+  public billing_cycle!: 'monthly' | 'annual';
+  public discount_percentage!: number;
+  public stripe_price_id!: string;
   public features!: string[];
   public max_downloads_per_day!: number;
   public max_concurrent_streams!: number;
@@ -42,6 +48,28 @@ class SubscriptionPlan extends Model<SubscriptionPlanAttributes, SubscriptionPla
       style: 'currency',
       currency: this.currency,
     }).format(this.price);
+  }
+
+  public getMonthlyEquivalentPrice(): number {
+    if (this.billing_cycle === 'monthly') {
+      return this.price;
+    }
+    return this.price / 12;
+  }
+
+  public getAnnualSavings(monthlyPrice: number): number {
+    if (this.billing_cycle === 'annual') {
+      return (monthlyPrice * 12) - this.price;
+    }
+    return 0;
+  }
+
+  public getDiscountPercentage(monthlyPrice: number): number {
+    if (this.billing_cycle === 'annual') {
+      const annualAtMonthlyRate = monthlyPrice * 12;
+      return Math.round(((annualAtMonthlyRate - this.price) / annualAtMonthlyRate) * 100);
+    }
+    return 0;
   }
 }
 
@@ -75,6 +103,25 @@ SubscriptionPlan.init(
       validate: {
         min: 1,
       },
+    },
+    billing_cycle: {
+      type: DataTypes.ENUM('monthly', 'annual'),
+      allowNull: false,
+      defaultValue: 'monthly',
+    },
+    discount_percentage: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0,
+      validate: {
+        min: 0,
+        max: 100,
+      },
+    },
+    stripe_price_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
     },
     features: {
       type: DataTypes.JSON,

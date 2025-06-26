@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -69,20 +70,26 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          <span>Thông tin cá nhân</span>
+        <DropdownMenuItem asChild>
+          <Link href="/profile" className="flex items-center">
+            <User className="mr-2 h-4 w-4" />
+            <span>Thông tin cá nhân</span>
+          </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Cài đặt</span>
+        <DropdownMenuItem asChild>
+          <Link href="/settings" className="flex items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Cài đặt</span>
+          </Link>
         </DropdownMenuItem>
         {user.subscription_tier === 'free' && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-orange-600">
-              <Crown className="mr-2 h-4 w-4" />
-              <span>Nâng cấp Pro</span>
+            <DropdownMenuItem asChild>
+              <Link href="/upgrade" className="flex items-center text-orange-600">
+                <Crown className="mr-2 h-4 w-4" />
+                <span>Nâng cấp Pro</span>
+              </Link>
             </DropdownMenuItem>
           </>
         )}

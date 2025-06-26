@@ -40,13 +40,15 @@ export default function SubscriptionPage() {
       <>
         <Navigation />
         <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-4">Gói Đăng Ký</h1>
-            <p className="text-muted-foreground">
-              Chọn gói hoàn hảo cho nhu cầu tải video của bạn
-            </p>
-          </div>
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Gói Đăng Ký
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Chọn gói hoàn hảo cho nhu cầu tải video của bạn
+              </p>
+            </div>
 
           <Card className="text-center py-12">
             <CardContent>
@@ -72,8 +74,10 @@ export default function SubscriptionPage() {
       <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">Quản Lý Đăng Ký</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Quản Lý Đăng Ký
+          </h1>
+          <p className="text-muted-foreground text-lg">
             Quản lý đăng ký, xem lịch sử thanh toán và nâng cấp gói của bạn
           </p>
         </div>

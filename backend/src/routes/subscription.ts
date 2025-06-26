@@ -32,13 +32,28 @@ const cancelSubscriptionValidation = [
   param('subscriptionId').isUUID().withMessage('Subscription ID must be a valid UUID'),
 ];
 
+const switchBillingCycleValidation = [
+  body('newPlanId').isUUID().withMessage('New plan ID must be a valid UUID'),
+  body('prorationMode').optional().isIn(['immediate', 'next_cycle']).withMessage('Proration mode must be immediate or next_cycle'),
+];
+
 /**
  * GET /api/subscription/plans
- * Get all available subscription plans
+ * Get all available subscription plans grouped by billing cycle
  */
 router.get('/plans', async (req: Request, res: Response) => {
   try {
-    const plans = await SubscriptionService.getAvailablePlans();
+    const groupedPlans = await SubscriptionService.getPlansGroupedByBilling();
+    const allPlans = await SubscriptionService.getAvailablePlans();
+
+    // Calculate savings for annual plans
+    const monthlyProPlan = groupedPlans.monthly.find(p => p.name.includes('Pro'));
+    const annualProPlan = groupedPlans.annual.find(p => p.name.includes('Pro'));
+
+    let savings = null;
+    if (monthlyProPlan && annualProPlan) {
+      savings = SubscriptionService.calculateAnnualSavings(monthlyProPlan, annualProPlan);
+    }
 
     // Set proper cache headers to prevent 304 Not Modified issues
     res.set({
@@ -51,18 +66,51 @@ router.get('/plans', async (req: Request, res: Response) => {
 
     res.json({
       message: 'Subscription plans retrieved successfully',
-      plans: plans.map(plan => ({
+      plans: allPlans.map(plan => ({
         id: plan.id,
         name: plan.name,
         price: plan.price,
         currency: plan.currency,
         displayPrice: plan.getDisplayPrice(),
         durationDays: plan.duration_days,
+        billingCycle: plan.billing_cycle,
+        discountPercentage: plan.discount_percentage,
         features: plan.features,
         maxDownloadsPerDay: plan.max_downloads_per_day,
         maxConcurrentStreams: plan.max_concurrent_streams,
         maxQuality: plan.max_quality,
       })),
+      grouped: {
+        monthly: groupedPlans.monthly.map(plan => ({
+          id: plan.id,
+          name: plan.name,
+          price: plan.price,
+          currency: plan.currency,
+          displayPrice: plan.getDisplayPrice(),
+          durationDays: plan.duration_days,
+          billingCycle: plan.billing_cycle,
+          discountPercentage: plan.discount_percentage,
+          features: plan.features,
+          maxDownloadsPerDay: plan.max_downloads_per_day,
+          maxConcurrentStreams: plan.max_concurrent_streams,
+          maxQuality: plan.max_quality,
+        })),
+        annual: groupedPlans.annual.map(plan => ({
+          id: plan.id,
+          name: plan.name,
+          price: plan.price,
+          currency: plan.currency,
+          displayPrice: plan.getDisplayPrice(),
+          durationDays: plan.duration_days,
+          billingCycle: plan.billing_cycle,
+          discountPercentage: plan.discount_percentage,
+          features: plan.features,
+          maxDownloadsPerDay: plan.max_downloads_per_day,
+          maxConcurrentStreams: plan.max_concurrent_streams,
+          maxQuality: plan.max_quality,
+        })),
+      },
+      savings
     });
   } catch (error) {
     console.error('Error fetching subscription plans:', error);
@@ -330,5 +378,53 @@ router.get('/payments', authenticate, async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * POST /api/subscription/switch-billing-cycle
+ * Switch between monthly and annual billing
+ */
+router.post('/switch-billing-cycle',
+  authenticate,
+  switchBillingCycleValidation,
+  validateRequest,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({
+          error: 'User not authenticated'
+        });
+      }
+
+      const { newPlanId, prorationMode = 'immediate' } = req.body;
+
+      const result = await SubscriptionService.switchBillingCycle(
+        userId,
+        newPlanId,
+        prorationMode
+      );
+
+      res.json({
+        message: 'Billing cycle switched successfully',
+        subscription: {
+          id: result.subscription.id,
+          planId: result.subscription.plan_id,
+          status: result.subscription.status,
+          startsAt: result.subscription.starts_at,
+          expiresAt: result.subscription.expires_at,
+          autoRenew: result.subscription.auto_renew,
+        },
+        prorationAmount: result.prorationAmount,
+        effectiveDate: result.effectiveDate,
+      });
+    } catch (error) {
+      console.error('Error switching billing cycle:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to switch billing cycle',
+        code: 'BILLING_CYCLE_SWITCH_FAILED'
+      });
+    }
+  }
+);
 
 export default router;

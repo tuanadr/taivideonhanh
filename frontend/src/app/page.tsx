@@ -221,12 +221,18 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Đang tải...</p>
-        </div>
-      </main>
+      <>
+        <Navigation />
+        <main className="flex min-h-screen flex-col items-center justify-center p-8">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold">Đang khởi tạo...</h2>
+              <p className="text-muted-foreground">Vui lòng chờ trong giây lát</p>
+            </div>
+          </div>
+        </main>
+      </>
     );
   }
 
@@ -274,21 +280,58 @@ export default function Home() {
               </DialogHeader>
             </DialogContent>
           </Dialog>
-          <Button onClick={handleGetInfo} disabled={loading}>
-            {isAuthenticated ? 'Tải xuống' : 'Đăng nhập để tải'}
+          <Button onClick={handleGetInfo} disabled={loading || !url.trim()}>
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Đang xử lý...
+              </>
+            ) : isAuthenticated ? (
+              'Phân tích video'
+            ) : (
+              'Đăng nhập để tải'
+            )}
           </Button>
         </CardFooter>
       </Card>
 
+      {loading && !videoInfo && (
+        <Card className="w-full max-w-4xl mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+              Đang phân tích video...
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="animate-pulse space-y-4">
+              <div className="bg-gray-200 rounded-lg h-48 w-full"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {videoInfo && (
         <Card className="w-full max-w-4xl mt-8">
           <CardHeader>
-            <CardTitle>{videoInfo.title}</CardTitle>
+            <CardTitle className="text-lg">{videoInfo.title}</CardTitle>
+            <CardDescription>Chọn chất lượng phù hợp để tải xuống</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
-            <Image src={videoInfo.thumbnail} alt={videoInfo.title} className="rounded-lg mb-4" width={400} height={225} unoptimized={true} />
+            <Image
+              src={videoInfo.thumbnail}
+              alt={videoInfo.title}
+              className="rounded-lg mb-6 shadow-md"
+              width={400}
+              height={225}
+              unoptimized={true}
+            />
             <div className="w-full">
-              <h3 className="font-bold mb-2">Chọn chất lượng:</h3>
+              <h3 className="font-bold mb-4 text-lg">Chọn chất lượng:</h3>
               <ul className="space-y-2">
                                                     {Object.values(
                                                         videoInfo.formats
@@ -314,21 +357,34 @@ export default function Home() {
                                                         const bRes = parseInt(b.resolution.split('x')[1]);
                                                         return bRes - aRes;
                                                     }).map((format) => (
-                  <li key={format.format_id} className="flex justify-between items-center p-2 border rounded-md">
-                    <div className="flex items-center gap-2">
+                  <li key={format.format_id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
                       {getQualityBadge(format.resolution) && (
-                        <Badge variant="destructive" className={`${getQualityBadge(format.resolution)?.color}`}>
+                        <Badge variant="destructive" className={`${getQualityBadge(format.resolution)?.color} text-white`}>
                           {getQualityBadge(format.resolution)?.label}
                         </Badge>
                       )}
-                      <span className="text-sm">{format.resolution || format.format_note} - {format.ext}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{format.resolution || format.format_note}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {format.ext.toUpperCase()} • {format.filesize ? `${(format.filesize / 1024 / 1024).toFixed(1)} MB` : 'Kích thước không xác định'}
+                        </span>
+                      </div>
                     </div>
-                    <Button 
-                      variant="secondary"
+                    <Button
+                      variant={downloadingFormat === format.format_id ? "outline" : "default"}
                       onClick={() => handleDownload(format.format_id, videoInfo.title, format.ext)}
                       disabled={downloadingFormat !== null}
+                      className="min-w-[120px]"
                     >
-                      {downloadingFormat === format.format_id ? 'Đang tải...' : 'Tải xuống'}
+                      {downloadingFormat === format.format_id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                          Đang tải...
+                        </>
+                      ) : (
+                        'Tải xuống'
+                      )}
                     </Button>
                   </li>
                 ))}
