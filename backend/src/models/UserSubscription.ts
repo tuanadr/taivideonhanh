@@ -11,11 +11,12 @@ interface UserSubscriptionAttributes {
   auto_renew: boolean;
   payment_method: string | null;
   stripe_subscription_id: string | null;
+  cancelled_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
 
-interface UserSubscriptionCreationAttributes extends Optional<UserSubscriptionAttributes, 'id' | 'created_at' | 'updated_at' | 'auto_renew' | 'payment_method' | 'stripe_subscription_id'> {}
+interface UserSubscriptionCreationAttributes extends Optional<UserSubscriptionAttributes, 'id' | 'created_at' | 'updated_at' | 'auto_renew' | 'payment_method' | 'stripe_subscription_id' | 'cancelled_at'> {}
 
 class UserSubscription extends Model<UserSubscriptionAttributes, UserSubscriptionCreationAttributes> implements UserSubscriptionAttributes {
   public id!: string;
@@ -27,6 +28,7 @@ class UserSubscription extends Model<UserSubscriptionAttributes, UserSubscriptio
   public auto_renew!: boolean;
   public payment_method!: string | null;
   public stripe_subscription_id!: string | null;
+  public cancelled_at!: Date | null;
   public created_at!: Date;
   public updated_at!: Date;
 
@@ -112,6 +114,10 @@ UserSubscription.init(
       type: DataTypes.STRING,
       allowNull: true,
       unique: true,
+    },
+    cancelled_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
