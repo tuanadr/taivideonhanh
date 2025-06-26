@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PricingPlans } from '@/components/subscription/PricingPlans';
+import { AnnualPricingPlans } from '@/components/subscription/AnnualPricingPlans';
 import { Navigation } from '@/components/layout/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Crown, Zap, Check, Star } from 'lucide-react';
@@ -129,7 +129,7 @@ export default function PlansPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PricingPlans 
+            <AnnualPricingPlans
               onSelectPlan={handleSelectPlan}
               showTestPayment={process.env.NODE_ENV === 'development'}
             />

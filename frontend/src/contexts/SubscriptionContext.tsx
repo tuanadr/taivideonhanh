@@ -10,6 +10,8 @@ interface SubscriptionPlan {
   currency: string;
   displayPrice: string;
   durationDays: number;
+  billingCycle: 'monthly' | 'annual';
+  discountPercentage: number;
   features: string[];
   maxDownloadsPerDay: number;
   maxConcurrentStreams: number;
@@ -23,11 +25,13 @@ interface UserSubscription {
   expiresAt: string;
   autoRenew: boolean;
   daysRemaining: number;
+  billingCycle?: 'monthly' | 'annual';
   plan: {
     id: string;
     name: string;
     price: number;
     displayPrice: string;
+    billingCycle?: 'monthly' | 'annual';
     features: string[];
   } | null;
 }
@@ -78,6 +82,7 @@ interface SubscriptionContextType {
   createPaymentIntent: (planId: string, paymentMethod: string) => Promise<{ clientSecret: string; paymentId: string }>;
   createTestPayment: (planId: string) => Promise<void>;
   cancelSubscription: (subscriptionId: string) => Promise<void>;
+  switchBillingCycle: (newPlanId: string, prorationMode?: 'immediate' | 'next_cycle') => Promise<void>;
   
   // Helpers
   canAccessFeature: (feature: string) => boolean;
@@ -284,6 +289,38 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return !isPro();
   };
 
+  const switchBillingCycle = useCallback(async (newPlanId: string, prorationMode: 'immediate' | 'next_cycle' = 'immediate') => {
+    if (!tokens?.accessToken) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      const response = await fetch('/api/subscription/switch-billing-cycle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        },
+        body: JSON.stringify({
+          newPlanId,
+          prorationMode,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to switch billing cycle');
+      }
+
+      // Refresh subscription data
+      await fetchCurrentSubscription();
+      await fetchPayments();
+    } catch (error) {
+      console.error('Error switching billing cycle:', error);
+      throw error;
+    }
+  }, [tokens?.accessToken, fetchCurrentSubscription, fetchPayments]);
+
   // Load data when user changes
   useEffect(() => {
     fetchPlans();
@@ -314,6 +351,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     createPaymentIntent,
     createTestPayment,
     cancelSubscription,
+    switchBillingCycle,
     canAccessFeature,
     canAccessQuality,
     isPro,

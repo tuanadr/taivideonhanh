@@ -121,21 +121,33 @@ export const Navigation: React.FC = () => {
 
           {/* Mobile Navigation */}
           {isAuthenticated && (
-            <div className="md:hidden border-t py-2">
-              <div className="flex items-center justify-center space-x-4">
+            <div className="md:hidden border-t py-3">
+              <div className="flex items-center justify-around">
                 <Link href="/">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 h-auto py-2">
                     <Home className="w-4 h-4" />
+                    <span className="text-xs">Trang chủ</span>
                   </Button>
                 </Link>
-                
 
-                
                 <Link href="/subscription">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="flex flex-col items-center gap-1 h-auto py-2">
                     <Crown className="w-4 h-4" />
+                    <span className="text-xs">Gói</span>
                   </Button>
                 </Link>
+
+                {/* Mobile subscription status */}
+                <div className="flex flex-col items-center">
+                  <Badge variant={isPro() ? 'default' : 'secondary'} className="text-xs">
+                    {isPro() ? 'Pro' : 'Free'}
+                  </Badge>
+                  {currentSubscription && currentSubscription.daysRemaining <= 7 && (
+                    <span className="text-xs text-red-500 mt-1">
+                      {currentSubscription.daysRemaining}d
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}
