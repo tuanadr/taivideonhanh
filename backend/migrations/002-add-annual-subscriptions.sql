@@ -3,10 +3,14 @@
 -- Description: Add billing_cycle, discount_percentage, and stripe_price_id to subscription_plans
 
 -- Add new columns to subscription_plans table
-ALTER TABLE subscription_plans 
+ALTER TABLE subscription_plans
 ADD COLUMN billing_cycle VARCHAR(10) DEFAULT 'monthly' CHECK (billing_cycle IN ('monthly', 'annual')),
 ADD COLUMN discount_percentage DECIMAL(5,2) DEFAULT 0 CHECK (discount_percentage >= 0 AND discount_percentage <= 100),
 ADD COLUMN stripe_price_id VARCHAR(255) UNIQUE;
+
+-- Add cancelled_at column to user_subscriptions table
+ALTER TABLE user_subscriptions
+ADD COLUMN cancelled_at TIMESTAMP NULL;
 
 -- Update existing plans to have proper billing_cycle
 UPDATE subscription_plans SET billing_cycle = 'monthly' WHERE billing_cycle IS NULL;

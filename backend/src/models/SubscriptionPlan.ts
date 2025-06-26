@@ -19,7 +19,7 @@ interface SubscriptionPlanAttributes {
   updated_at: Date;
 }
 
-interface SubscriptionPlanCreationAttributes extends Optional<SubscriptionPlanAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'discount_percentage'> {}
+interface SubscriptionPlanCreationAttributes extends Optional<SubscriptionPlanAttributes, 'id' | 'created_at' | 'updated_at' | 'is_active' | 'discount_percentage' | 'stripe_price_id'> {}
 
 class SubscriptionPlan extends Model<SubscriptionPlanAttributes, SubscriptionPlanCreationAttributes> implements SubscriptionPlanAttributes {
   public id!: string;

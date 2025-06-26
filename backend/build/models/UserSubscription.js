@@ -92,6 +92,10 @@ UserSubscription.init({
         allowNull: true,
         unique: true,
     },
+    cancelled_at: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+    },
     created_at: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,
