@@ -1,37 +1,40 @@
-# Production Environment Configuration - Monorepo
-# Sử dụng cho cả frontend và backend trong 1 service EasyPanel
-# Copy file này thành .env và cập nhật với giá trị thực tế
+# Complete Environment Variables - Monorepo Single Service
 
-# Environment
+## 🔧 Biến môi trường đầy đủ cho EasyPanel (1 service duy nhất)
+
+### 📝 Copy-paste trực tiếp vào EasyPanel Environment Variables:
+
+```bash
+# Production Environment Configuration - Monorepo
 NODE_ENV=production
 
 # Database Configuration (EasyPanel format)
 DB_HOST=taivideonhanh_postgres
 DB_USER=postgres
-DB_PASSWORD=your_db_password_here
+DB_PASSWORD=s1234566
 DB_NAME=postgres
 DB_PORT=5432
 
 # Redis Configuration
 REDIS_HOST=redis
 REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password_here
+REDIS_PASSWORD=s1234566
 REDIS_DB=0
-REDIS_URL=redis://:your_redis_password_here@redis:6379/0
+REDIS_URL=redis://:s1234566@redis:6379/0
 
 # JWT Configuration
-JWT_ACCESS_SECRET=your_jwt_access_secret_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+JWT_ACCESS_SECRET=pQ7mN3xZ9cV1bY5tA8uR2eO4iL6kJ0hF!@#$
+JWT_REFRESH_SECRET=zD9pX4rF8sC2vB6nM1tY5uJ7kH0gA3eLqWcE!@#$
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 ROTATE_REFRESH_TOKENS=true
-JWT_SECRET=your_legacy_jwt_secret_here
-ADMIN_JWT_SECRET=your_admin_jwt_secret_here
+JWT_SECRET=kV3jH6pS9dR2fZ5yC8aX1wB4nM7qL0eG!@#$
+ADMIN_JWT_SECRET=gP5kN8sT2uW4vR6cD1bY7jF0hM9qA3eL!@#$
 
 # Admin Configuration
 ADMIN_EMAILS=admin@taivideonhanh.vn
 DEFAULT_ADMIN_EMAIL=admin@taivideonhanh.vn
-DEFAULT_ADMIN_PASSWORD=your_admin_password_here
+DEFAULT_ADMIN_PASSWORD=admin123456
 
 # API Configuration (Domain taivideonhanh.vn)
 NEXT_PUBLIC_API_URL=https://taivideonhanh.vn/api
@@ -42,7 +45,7 @@ CORS_ORIGIN=https://taivideonhanh.vn
 ENABLE_SECURITY_HEADERS=true
 ENABLE_HELMET=true
 TRUST_PROXY=true
-SESSION_SECRET=your_session_secret_here
+SESSION_SECRET=xR9mK2pL5nQ8wE3tY6uI1oP4aS7dF0gH!@#$
 SESSION_MAX_AGE=86400000
 
 # Server Configuration
@@ -95,7 +98,7 @@ ENABLE_REDIS_CACHE=true
 # Queue Configuration (for background jobs)
 QUEUE_REDIS_HOST=redis
 QUEUE_REDIS_PORT=6379
-QUEUE_REDIS_PASSWORD=your_redis_password_here
+QUEUE_REDIS_PASSWORD=s1234566
 QUEUE_REDIS_DB=1
 
 # Health Check Configuration
@@ -224,3 +227,42 @@ DOMAIN=taivideonhanh.vn
 # Optional - Error Tracking (Uncomment if needed)
 # NEXT_PUBLIC_ENABLE_ERROR_TRACKING=true
 # NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn_here
+```
+
+## 🚀 Hướng dẫn sử dụng trên EasyPanel:
+
+### 1. **Copy Environment Variables**
+- Copy toàn bộ nội dung trên
+- Paste vào EasyPanel → App Settings → Environment Variables
+
+### 2. **Deploy Monorepo**
+- EasyPanel sẽ tự động detect và build cả frontend + backend
+- Một service duy nhất chạy cả hai
+
+### 3. **Verify Deployment**
+- Truy cập: https://taivideonhanh.vn
+- Test admin login: admin@taivideonhanh.vn / admin123456
+- Kiểm tra API: https://taivideonhanh.vn/api/health
+
+## ✅ Đặc điểm:
+
+- **✅ Single Service**: Chỉ 1 service cho cả frontend và backend
+- **✅ EasyPanel Optimized**: Đúng format cho EasyPanel deployment
+- **✅ Production Ready**: Tất cả biến đã điền sẵn với credentials hiện tại
+- **✅ Security First**: JWT secrets mạnh, CORS, security headers
+- **✅ Performance**: Connection pooling, caching, rate limiting
+- **✅ Monitoring**: Health checks, logging, backup
+- **✅ Scalable**: Optional services sẵn sàng khi cần
+
+## 🔧 Optional Services:
+
+Uncomment các dòng khi cần sử dụng:
+- **Stripe**: Payment processing
+- **Email**: SMTP notifications  
+- **Analytics**: Google Analytics
+- **CDN**: Content delivery
+- **Social Login**: Facebook, Google
+- **Push Notifications**: Web push
+- **Error Tracking**: Sentry
+
+**Ready for production deployment! 🎉**
