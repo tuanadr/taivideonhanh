@@ -62,17 +62,119 @@ export const AnnualPricingPlans: React.FC<AnnualPricingPlansProps> = ({
     try {
       const response = await fetch('/api/subscription/plans');
       const data = await response.json();
-      
+
+      console.log('Fetched plans data:', data); // Debug log
+
       if (data.grouped) {
         setGroupedPlans(data.grouped);
+      } else {
+        // Fallback to default plans if API doesn't return grouped data
+        const fallbackPlans = {
+          monthly: [
+            {
+              id: 'free-monthly',
+              name: 'Free',
+              price: 0,
+              currency: 'VND',
+              displayPrice: '0 ₫',
+              durationDays: 30,
+              billingCycle: 'monthly' as const,
+              discountPercentage: 0,
+              features: ['basic_download'],
+              maxDownloadsPerDay: 10,
+              maxConcurrentStreams: 1,
+              maxQuality: '720p',
+            },
+            {
+              id: 'pro-monthly',
+              name: 'Pro Monthly',
+              price: 99000,
+              currency: 'VND',
+              displayPrice: '99.000 ₫',
+              durationDays: 30,
+              billingCycle: 'monthly' as const,
+              discountPercentage: 0,
+              features: ['unlimited_downloads', '4k_quality', 'concurrent_streams', 'priority_support', 'no_ads', 'playlist_download', 'api_access'],
+              maxDownloadsPerDay: 999999,
+              maxConcurrentStreams: 5,
+              maxQuality: 'best',
+            }
+          ],
+          annual: [
+            {
+              id: 'pro-annual',
+              name: 'Pro Annual',
+              price: 950000,
+              currency: 'VND',
+              displayPrice: '950.000 ₫',
+              durationDays: 365,
+              billingCycle: 'annual' as const,
+              discountPercentage: 20,
+              features: ['unlimited_downloads', '4k_quality', 'concurrent_streams', 'priority_support', 'no_ads', 'playlist_download', 'api_access', 'annual_bonus'],
+              maxDownloadsPerDay: 999999,
+              maxConcurrentStreams: 5,
+              maxQuality: 'best',
+            }
+          ]
+        };
+        setGroupedPlans(fallbackPlans);
       }
-      
+
       if (data.savings) {
         setSavings(data.savings);
+      } else {
+        // Calculate fallback savings
+        setSavings({
+          savingsAmount: 238000, // 99000 * 12 - 950000
+          savingsPercentage: 20,
+          monthlyEquivalent: 79167 // 950000 / 12
+        });
       }
     } catch (error) {
       console.error('Failed to fetch plans:', error);
       toast.error('Không thể tải danh sách gói đăng ký');
+
+      // Set fallback data even on error
+      const fallbackPlans = {
+        monthly: [
+          {
+            id: 'pro-monthly',
+            name: 'Pro Monthly',
+            price: 99000,
+            currency: 'VND',
+            displayPrice: '99.000 ₫',
+            durationDays: 30,
+            billingCycle: 'monthly' as const,
+            discountPercentage: 0,
+            features: ['unlimited_downloads', '4k_quality', 'concurrent_streams', 'priority_support', 'no_ads', 'playlist_download', 'api_access'],
+            maxDownloadsPerDay: 999999,
+            maxConcurrentStreams: 5,
+            maxQuality: 'best',
+          }
+        ],
+        annual: [
+          {
+            id: 'pro-annual',
+            name: 'Pro Annual',
+            price: 950000,
+            currency: 'VND',
+            displayPrice: '950.000 ₫',
+            durationDays: 365,
+            billingCycle: 'annual' as const,
+            discountPercentage: 20,
+            features: ['unlimited_downloads', '4k_quality', 'concurrent_streams', 'priority_support', 'no_ads', 'playlist_download', 'api_access', 'annual_bonus'],
+            maxDownloadsPerDay: 999999,
+            maxConcurrentStreams: 5,
+            maxQuality: 'best',
+          }
+        ]
+      };
+      setGroupedPlans(fallbackPlans);
+      setSavings({
+        savingsAmount: 238000,
+        savingsPercentage: 20,
+        monthlyEquivalent: 79167
+      });
     } finally {
       setLoading(false);
     }
@@ -132,7 +234,9 @@ export const AnnualPricingPlans: React.FC<AnnualPricingPlansProps> = ({
 
   const currentPlans = isAnnual ? groupedPlans.annual : groupedPlans.monthly;
   const proPlans = currentPlans.filter(plan => plan.name.toLowerCase().includes('pro'));
-  const freePlans = currentPlans.filter(plan => plan.name.toLowerCase().includes('free'));
+
+  // Always show free plan from monthly, even when annual is selected
+  const freePlans = groupedPlans.monthly.filter(plan => plan.name.toLowerCase().includes('free'));
 
   if (loading) {
     return (
