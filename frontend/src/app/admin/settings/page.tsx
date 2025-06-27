@@ -7,18 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-// import { Separator } from '@/components/ui/separator';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import {
-  // Settings as SettingsIcon,
-  Server,
-  Shield,
-  // Mail,
-  CreditCard,
   Save,
   AlertTriangle,
-  // Database,
   Globe,
-  // Key
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -101,8 +102,10 @@ export default function AdminSettingsPage() {
     },
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -164,38 +167,92 @@ export default function AdminSettingsPage() {
         [key]: value
       }
     }));
+    setHasChanges(true);
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Cài đặt hệ thống</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
-              <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </div>
-            </div>
-          ))}
+      <AdminPageWrapper spacing="normal" maxWidth="7xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32" />
         </div>
-      </div>
+
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, j) => (
+                      <div key={j} className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </AdminPageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Cài đặt hệ thống</h1>
-        <Button onClick={saveSettings} disabled={isSaving}>
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}
-        </Button>
+    <AdminPageWrapper spacing="normal" maxWidth="7xl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Cài đặt hệ thống
+          </h1>
+          <p className="text-gray-600">
+            Cấu hình và tùy chỉnh các thông số hệ thống
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={loadSettings}
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Đang tải...' : 'Làm mới'}
+          </Button>
+          <Button
+            onClick={() => setShowSaveDialog(true)}
+            disabled={isSaving || !hasChanges}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? 'Đang lưu...' : 'Lưu cài đặt'}
+          </Button>
+        </div>
       </div>
 
+      {/* Changes Alert */}
+      {hasChanges && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Bạn có thay đổi chưa được lưu. Nhớ lưu cài đặt trước khi rời khỏi trang.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Settings Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* General Settings */}
         <Card>
@@ -232,7 +289,7 @@ export default function AdminSettingsPage() {
               <div className="space-y-0.5">
                 <Label>Chế độ bảo trì</Label>
                 <p className="text-sm text-muted-foreground">
-                  Tạm thời tắt website để bảo trì
+                  Tạm thời tắt website cho người dùng
                 </p>
               </div>
               <Switch
@@ -253,243 +310,64 @@ export default function AdminSettingsPage() {
                 onCheckedChange={(checked) => updateSetting('general', 'registrationEnabled', checked)}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxConcurrent">Tải đồng thời tối đa</Label>
-                <Input
-                  id="maxConcurrent"
-                  type="number"
-                  value={settings.general.maxConcurrentDownloads}
-                  onChange={(e) => updateSetting('general', 'maxConcurrentDownloads', parseInt(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="maxDaily">Tải tối đa/ngày</Label>
-                <Input
-                  id="maxDaily"
-                  type="number"
-                  value={settings.general.maxDailyDownloads}
-                  onChange={(e) => updateSetting('general', 'maxDailyDownloads', parseInt(e.target.value))}
-                />
-              </div>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Streaming Settings */}
+        {/* System Info */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Server className="h-5 w-5" />
-              Cài đặt streaming
+              <Info className="h-5 w-5" />
+              Thông tin hệ thống
             </CardTitle>
             <CardDescription>
-              Cấu hình tải và xử lý video
+              Trạng thái và thông tin hệ thống
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="defaultQuality">Chất lượng mặc định</Label>
-              <select
-                id="defaultQuality"
-                value={settings.streaming.defaultQuality}
-                onChange={(e) => updateSetting('streaming', 'defaultQuality', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="best">Tốt nhất</option>
-                <option value="1080p">1080p</option>
-                <option value="720p">720p</option>
-                <option value="480p">480p</option>
-              </select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Cho phép chất lượng cao</Label>
-                <p className="text-sm text-muted-foreground">
-                  Hỗ trợ 4K và chất lượng cao
-                </p>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Phiên bản:</span>
+                <Badge variant="outline">v1.0.0</Badge>
               </div>
-              <Switch
-                checked={settings.streaming.enableHighQuality}
-                onCheckedChange={(checked) => updateSetting('streaming', 'enableHighQuality', checked)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxFileSize">Kích thước file tối đa (MB)</Label>
-              <Input
-                id="maxFileSize"
-                type="number"
-                value={settings.streaming.maxFileSize}
-                onChange={(e) => updateSetting('streaming', 'maxFileSize', parseInt(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Platforms hỗ trợ</Label>
-              <div className="text-sm text-muted-foreground">
-                YouTube, TikTok, Facebook
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Trạng thái:</span>
+                <Badge className="bg-green-100 text-green-800">Hoạt động</Badge>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Cài đặt thanh toán
-            </CardTitle>
-            <CardDescription>
-              Cấu hình Stripe và thanh toán
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="stripePublicKey">Stripe Public Key</Label>
-              <Input
-                id="stripePublicKey"
-                type="password"
-                value={settings.payment.stripePublicKey}
-                onChange={(e) => updateSetting('payment', 'stripePublicKey', e.target.value)}
-                placeholder="pk_..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stripeWebhookSecret">Stripe Webhook Secret</Label>
-              <Input
-                id="stripeWebhookSecret"
-                type="password"
-                value={settings.payment.stripeWebhookSecret}
-                onChange={(e) => updateSetting('payment', 'stripeWebhookSecret', e.target.value)}
-                placeholder="whsec_..."
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Chế độ test</Label>
-                <p className="text-sm text-muted-foreground">
-                  Sử dụng Stripe test mode
-                </p>
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Uptime:</span>
+                <span className="text-sm">24h 15m</span>
               </div>
-              <Switch
-                checked={settings.payment.enableTestMode}
-                onCheckedChange={(checked) => updateSetting('payment', 'enableTestMode', checked)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="currency">Tiền tệ</Label>
-                <Input
-                  id="currency"
-                  value={settings.payment.currency}
-                  onChange={(e) => updateSetting('payment', 'currency', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="proPriceMonthly">Giá Pro/tháng</Label>
-                <Input
-                  id="proPriceMonthly"
-                  type="number"
-                  value={settings.payment.proPriceMonthly}
-                  onChange={(e) => updateSetting('payment', 'proPriceMonthly', parseInt(e.target.value))}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Cài đặt bảo mật
-            </CardTitle>
-            <CardDescription>
-              Cấu hình JWT và bảo mật
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="jwtAccessExpiry">JWT Access Expiry</Label>
-                <Input
-                  id="jwtAccessExpiry"
-                  value={settings.security.jwtAccessExpiry}
-                  onChange={(e) => updateSetting('security', 'jwtAccessExpiry', e.target.value)}
-                  placeholder="15m"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="jwtRefreshExpiry">JWT Refresh Expiry</Label>
-                <Input
-                  id="jwtRefreshExpiry"
-                  value={settings.security.jwtRefreshExpiry}
-                  onChange={(e) => updateSetting('security', 'jwtRefreshExpiry', e.target.value)}
-                  placeholder="7d"
-                />
+              <div className="flex justify-between">
+                <span className="text-sm font-medium">Người dùng online:</span>
+                <span className="text-sm">12</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Giới hạn tốc độ</Label>
-                <p className="text-sm text-muted-foreground">
-                  Bảo vệ khỏi spam và abuse
-                </p>
-              </div>
-              <Switch
-                checked={settings.security.enableRateLimit}
-                onCheckedChange={(checked) => updateSetting('security', 'enableRateLimit', checked)}
-              />
-            </div>
+            <Separator />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxLoginAttempts">Thử đăng nhập tối đa</Label>
-                <Input
-                  id="maxLoginAttempts"
-                  type="number"
-                  value={settings.security.maxLoginAttempts}
-                  onChange={(e) => updateSetting('security', 'maxLoginAttempts', parseInt(e.target.value))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Timeout session (giờ)</Label>
-                <Input
-                  id="sessionTimeout"
-                  type="number"
-                  value={settings.security.sessionTimeout}
-                  onChange={(e) => updateSetting('security', 'sessionTimeout', parseInt(e.target.value))}
-                />
-              </div>
-            </div>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Lưu ý:</strong> Một số thay đổi có thể yêu cầu khởi động lại server để có hiệu lực.
+              </AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
       </div>
 
-      {/* Warning */}
-      <Card className="border-orange-200 bg-orange-50">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
-            <div>
-              <h3 className="font-medium text-orange-900">Lưu ý quan trọng</h3>
-              <p className="text-sm text-orange-700 mt-1">
-                Một số thay đổi có thể yêu cầu khởi động lại server để có hiệu lực. 
-                Hãy cẩn thận khi thay đổi cài đặt bảo mật và thanh toán.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      {/* Confirm Save Dialog */}
+      <ConfirmDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        title="Lưu cài đặt"
+        description="Bạn có chắc chắn muốn lưu các thay đổi? Một số cài đặt có thể yêu cầu khởi động lại hệ thống."
+        confirmText="Lưu"
+        cancelText="Hủy"
+        variant="default"
+        onConfirm={saveSettings}
+        isLoading={isSaving}
+      />
+    </AdminPageWrapper>
   );
 }
