@@ -1,34 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Users,
   Search,
-  Filter,
   RefreshCw,
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2
+  UserPlus,
+  Download,
+  CheckCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface User {
   id: string;
@@ -50,85 +39,49 @@ interface UserStats {
   activeUsers: number;
   inactiveUsers: number;
   suspendedUsers: number;
-  freeUsers: number;
   premiumUsers: number;
-  proUsers: number;
   newUsersToday: number;
-  newUsersThisWeek: number;
-  newUsersThisMonth: number;
 }
 
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-export default function UserManagement() {
+export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0
-  });
   const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState('');
-
-  // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [subscriptionFilter, setSubscriptionFilter] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const fetchUsers = useCallback(async () => {
+
+  useEffect(() => {
+    fetchUsers();
+    fetchStats();
+  }, []);
+
+  const fetchUsers = async () => {
     try {
-      setIsLoading(true);
       const token = localStorage.getItem('adminToken');
-
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-        sortBy,
-        sortOrder
-      });
-
-      if (search) params.append('search', search);
-      if (statusFilter) params.append('status', statusFilter);
-      if (subscriptionFilter) params.append('subscription', subscriptionFilter);
-
-      const response = await fetch(`/api/admin/users?${params}`, {
+      const response = await fetch('/api/admin/users', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.users);
-        setPagination(data.pagination);
-      } else {
-        setMessage('❌ Không thể lấy danh sách người dùng');
+        setUsers(data.users || []);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      setMessage('❌ Lỗi kết nối khi lấy danh sách người dùng');
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, search, statusFilter, subscriptionFilter, sortBy, sortOrder]);
+  };
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-
-      const response = await fetch('/api/admin/users/stats/overview', {
+      const response = await fetch('/api/admin/users/stats', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -139,35 +92,6 @@ export default function UserManagement() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-    fetchStats();
-  }, [fetchUsers, fetchStats]);
-
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleFilterChange = (type: string, value: string) => {
-    if (type === 'status') {
-      setStatusFilter(value);
-    } else if (type === 'subscription') {
-      setSubscriptionFilter(value);
-    }
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('desc');
-    }
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const formatDate = (dateString: string | null) => {
@@ -183,271 +107,230 @@ export default function UserManagement() {
 
   const getSubscriptionBadge = (subscription?: { tier: string }) => {
     if (!subscription) return <Badge variant="outline">Free</Badge>;
-
+    
     const tier = subscription.tier;
     if (tier === 'premium') return <Badge variant="default">Premium</Badge>;
     if (tier === 'pro') return <Badge className="bg-purple-600">Pro</Badge>;
     return <Badge variant="outline">Free</Badge>;
   };
 
-  if (isLoading && users.length === 0) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p>Đang tải danh sách người dùng...</p>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4 text-center">
+                <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                <Skeleton className="h-4 w-20 mx-auto" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <Card>
-          <CardHeader className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Users className="h-8 w-8 text-blue-600" />
-            </div>
-            <CardTitle className="text-2xl">User Management Dashboard</CardTitle>
-            <CardDescription>
-              Quản lý người dùng và thống kê hệ thống
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
-        {/* Statistics */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.totalUsers}</div>
-                <div className="text-sm text-gray-600">Tổng Users</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{stats.activeUsers}</div>
-                <div className="text-sm text-gray-600">Active</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-yellow-600">{stats.inactiveUsers}</div>
-                <div className="text-sm text-gray-600">Inactive</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-red-600">{stats.suspendedUsers}</div>
-                <div className="text-sm text-gray-600">Suspended</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-purple-600">{stats.premiumUsers}</div>
-                <div className="text-sm text-gray-600">Premium</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-orange-600">{stats.newUsersToday}</div>
-                <div className="text-sm text-gray-600">New Today</div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters & Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Tìm kiếm email, tên..."
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              <Select value={statusFilter} onValueChange={(value) => handleFilterChange('status', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={subscriptionFilter} onValueChange={(value) => handleFilterChange('subscription', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Gói đăng ký" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button onClick={fetchUsers} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Làm mới
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Danh sách người dùng ({pagination.total})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead
-                      className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('email')}
-                    >
-                      Email {sortBy === 'email' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead>Tên</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Gói</TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('last_login')}
-                    >
-                      Đăng nhập cuối {sortBy === 'last_login' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleSort('created_at')}
-                    >
-                      Ngày tạo {sortBy === 'created_at' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => {
-                    const status = getUserStatus(user);
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.email}</TableCell>
-                        <TableCell>{`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </TableCell>
-                        <TableCell>{getSubscriptionBadge(user.subscription)}</TableCell>
-                        <TableCell>{formatDate(user.last_login)}</TableCell>
-                        <TableCell>{formatDate(user.created_at)}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
-                Hiển thị {((pagination.page - 1) * pagination.limit) + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} của {pagination.total} người dùng
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page <= 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Trước
-                </Button>
-                <span className="text-sm">
-                  Trang {pagination.page} / {pagination.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  disabled={pagination.page >= pagination.totalPages}
-                >
-                  Sau
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Message */}
-        {message && (
-          <Alert className={message.includes('✅') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => window.location.href = '/admin/setup'}
-            >
-              <Activity className="mr-2 h-4 w-4" />
-              Quay Về Admin Setup
-            </Button>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Quản lý người dùng
+          </h1>
+          <p className="text-muted-foreground">
+            Quản lý tài khoản và thông tin người dùng hệ thống
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <Download className="h-4 w-4" />
+            Xuất dữ liệu
+          </Button>
+          <Button size="sm" className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Thêm người dùng
+          </Button>
+        </div>
       </div>
+
+      {/* Statistics */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Tổng số</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.totalUsers}</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-green-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Hoạt động</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.activeUsers}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-yellow-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Không hoạt động</p>
+                  <p className="text-2xl font-bold text-yellow-600">{stats.inactiveUsers}</p>
+                </div>
+                <Clock className="h-8 w-8 text-yellow-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-red-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Bị khóa</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.suspendedUsers}</p>
+                </div>
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-purple-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Premium</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.premiumUsers}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-orange-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Mới hôm nay</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.newUsersToday}</p>
+                </div>
+                <UserPlus className="h-8 w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Tìm kiếm theo email hoặc tên..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tất cả trạng thái</SelectItem>
+                <SelectItem value="active">Hoạt động</SelectItem>
+                <SelectItem value="inactive">Không hoạt động</SelectItem>
+                <SelectItem value="suspended">Bị khóa</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={subscriptionFilter} onValueChange={setSubscriptionFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Gói đăng ký" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Tất cả gói</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="pro">Pro</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button 
+              onClick={fetchUsers} 
+              variant="outline" 
+              size="sm"
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Danh sách người dùng ({users.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tên</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Gói</TableHead>
+                  <TableHead>Đăng nhập cuối</TableHead>
+                  <TableHead>Ngày tạo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => {
+                  const status = getUserStatus(user);
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.email}</TableCell>
+                      <TableCell>{`${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                      </TableCell>
+                      <TableCell>{getSubscriptionBadge(user.subscription)}</TableCell>
+                      <TableCell>{formatDate(user.last_login)}</TableCell>
+                      <TableCell>{formatDate(user.created_at)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
