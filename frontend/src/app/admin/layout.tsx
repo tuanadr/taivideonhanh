@@ -192,9 +192,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md shadow-sm border-b">
-          <div className="flex items-center justify-between h-16 px-6">
+        {/* Top bar - Mobile menu only */}
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md shadow-sm border-b lg:hidden">
+          <div className="flex items-center h-16 px-6">
             <Button
               variant="ghost"
               size="sm"
@@ -203,20 +203,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-
-            <div className="flex items-center space-x-3">
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                Admin Dashboard
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                Chào mừng đến hệ thống quản trị
-              </span>
-            </div>
           </div>
         </div>
 
         {/* Page content */}
-        <main className="p-4">
+        <main className="p-6 lg:p-8">
           {children}
         </main>
       </div>
