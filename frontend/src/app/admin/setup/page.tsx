@@ -238,6 +238,13 @@ export default function AdminSetup() {
               <Button onClick={goToDashboard} variant="outline" className="w-full justify-start">
                 📊 Simple Dashboard
               </Button>
+              <Button
+                onClick={() => window.location.href = '/admin/cookies'}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                🍪 Cookie Management
+              </Button>
               <Button 
                 onClick={fetchAdminStatus} 
                 variant="outline" 
