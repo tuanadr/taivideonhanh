@@ -55,6 +55,37 @@
 }
 */
 
+/* Enhanced AdminPageWrapper animations */
+.admin-page-wrapper {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Improved focus management for accessibility */
+.admin-page-wrapper:focus-within {
+  outline: none;
+}
+
+.admin-page-wrapper .focus-visible:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Smooth animations for all interactive elements */
 .dashboard-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
