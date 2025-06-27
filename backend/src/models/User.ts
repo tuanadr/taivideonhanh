@@ -6,24 +6,38 @@ interface UserAttributes {
   id: string;
   email: string;
   password_hash: string;
+  first_name?: string;
+  last_name?: string;
   subscription_tier: 'free' | 'pro';
+  is_active: boolean;
+  is_suspended: boolean;
   created_at: Date;
   updated_at: Date;
   email_verified: boolean;
   last_login: Date | null;
+  deleted_at?: Date | null;
+  deletion_reason?: string;
+  deleted_by?: string;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at' | 'subscription_tier' | 'email_verified' | 'last_login'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at' | 'subscription_tier' | 'email_verified' | 'last_login' | 'is_active' | 'is_suspended' | 'first_name' | 'last_name'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
   public email!: string;
   public password_hash!: string;
+  public first_name?: string;
+  public last_name?: string;
   public subscription_tier!: 'free' | 'pro';
+  public is_active!: boolean;
+  public is_suspended!: boolean;
   public created_at!: Date;
   public updated_at!: Date;
   public email_verified!: boolean;
   public last_login!: Date | null;
+  public deleted_at?: Date | null;
+  public deletion_reason?: string;
+  public deleted_by?: string;
 
   // Instance methods
   public async validatePassword(password: string): Promise<boolean> {
@@ -95,6 +109,20 @@ User.init(
         len: [60, 60], // bcrypt hash length
       },
     },
+    first_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        len: [1, 50],
+      },
+    },
+    last_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        len: [1, 50],
+      },
+    },
     subscription_tier: {
       type: DataTypes.ENUM('free', 'pro'),
       allowNull: false,
@@ -109,6 +137,16 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    is_suspended: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -118,6 +156,18 @@ User.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+    },
+    deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    deletion_reason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    deleted_by: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
   },
   {

@@ -14,7 +14,12 @@ export default function DirectAdminLogin() {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
-  const [adminInfo, setAdminInfo] = useState<any>(null);
+  const [adminInfo, setAdminInfo] = useState<{
+    id: string;
+    email: string;
+    role: string;
+    permissions: string[];
+  } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

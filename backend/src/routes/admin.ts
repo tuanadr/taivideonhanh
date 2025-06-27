@@ -505,4 +505,8 @@ router.delete('/cookie',
   }
 );
 
+// Mount user management routes
+import userManagementRoutes from './userManagement';
+router.use('/users', userManagementRoutes);
+
 export default router;
