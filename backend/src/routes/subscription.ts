@@ -389,7 +389,7 @@ router.post('/switch-billing-cycle',
   validateRequest,
   async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       if (!userId) {
         return res.status(401).json({
           error: 'User not authenticated'
