@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +13,9 @@ import {
   Cookie,
   LogOut,
   Menu,
-  X
+  X,
+  Shield,
+  Loader2
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -81,26 +86,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   if (isLoading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          border: '2px solid #e5e7eb',
-          borderTop: '2px solid #2563eb',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
+              <Shield className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
+            <p className="text-sm text-muted-foreground">Đang xác thực...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -117,54 +114,76 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Mobile sidebar overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-64 bg-white/95 backdrop-blur-md shadow-xl border-r transform transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:inset-0
       `}>
-        <div className="flex items-center justify-between h-16 px-6 border-b">
-          <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-          <button
+        <div className="flex items-center justify-between h-16 px-6 border-b bg-gradient-to-r from-blue-500 to-purple-600">
+          <div className="flex items-center gap-3">
+            <Shield className="h-6 w-6 text-white" />
+            <h1 className="text-lg font-bold text-white">Admin Panel</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600"
+            className="lg:hidden text-white hover:bg-white/20"
           >
-            <X className="h-5 w-5" />
-          </button>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
-        <nav className="mt-6 px-3">
+        <nav className="mt-6 px-3 space-y-2">
           <div className="space-y-1">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                <item.icon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" />
-                {item.name}
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                    }
+                  `}
+                  onClick={() => setIsSidebarOpen(false)}
+                >
+                  <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-500'}`} />
+                  {item.name}
+                  {isActive && (
+                    <Badge variant="secondary" className="ml-auto bg-white/20 text-white border-0">
+                      Active
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <button
+          <Separator className="my-4" />
+
+          <div className="pt-2">
+            <Button
+              variant="ghost"
               onClick={handleLogout}
-              className="group flex items-center w-full px-3 py-2 text-sm font-medium rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
             >
-              <LogOut className="mr-3 h-5 w-5" />
+              <LogOut className="mr-3 h-4 w-4" />
               Đăng xuất
-            </button>
+            </Button>
           </div>
         </nav>
       </div>
@@ -172,18 +191,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-white shadow-sm border-b">
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md shadow-sm border-b">
           <div className="flex items-center justify-between h-16 px-6">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-600"
+              className="lg:hidden"
             >
               <Menu className="h-5 w-5" />
-            </button>
-            
+            </Button>
+
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                Chào mừng đến Admin Panel
+              <Badge variant="outline" className="text-xs">
+                Admin Dashboard
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                Chào mừng đến hệ thống quản trị
               </span>
             </div>
           </div>

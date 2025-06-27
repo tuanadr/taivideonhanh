@@ -1,15 +1,24 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { 
-  Upload, 
-  FileText, 
-  CheckCircle, 
-  XCircle, 
-  AlertCircle, 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import {
+  Upload,
+  FileText,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
   Trash2,
   TestTube,
-  RefreshCw
+  RefreshCw,
+  Cookie,
+  CloudUpload,
+  FileCheck,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
