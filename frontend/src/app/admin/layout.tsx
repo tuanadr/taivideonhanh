@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import AdminBreadcrumb from '@/components/admin/AdminBreadcrumb';
 import {
   LayoutDashboard,
   Users,
@@ -15,7 +16,8 @@ import {
   Menu,
   X,
   Shield,
-  Loader2
+  Loader2,
+  Bell
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -30,9 +32,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
 
   // Check if current page is a login page (should not require authentication)
-  const isLoginPage = pathname === '/admin/login' ||
-                     pathname === '/admin/simple-login' ||
-                     pathname === '/admin/direct-login';
+  const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
     // Skip auth check for login pages
@@ -192,22 +192,41 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top bar - Mobile menu only */}
-        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md shadow-sm border-b lg:hidden">
-          <div className="flex items-center h-16 px-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
+        {/* Top header */}
+        <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-md shadow-sm border-b">
+          <div className="flex items-center justify-between h-16 px-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div className="hidden lg:block">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {navigation.find(item => item.href === pathname)?.name || 'Admin Panel'}
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-4 w-4" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+              </Button>
+              <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </div>
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* Page content */}
         <main className="p-6 lg:p-8">
+          <AdminBreadcrumb />
           {children}
         </main>
       </div>
