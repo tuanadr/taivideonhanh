@@ -215,8 +215,8 @@ export default function AdminSettingsPage() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Cài đặt hệ thống
           </h1>
-          <p className="text-muted-foreground">
-            Cấu hình và tùy chỉnh hệ thống
+          <p className="text-gray-600">
+            Cấu hình và tùy chỉnh các thông số hệ thống
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export default function AdminSettingsPage() {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Làm mới
+            {isLoading ? 'Đang tải...' : 'Làm mới'}
           </Button>
           <Button
             onClick={() => setShowSaveDialog(true)}

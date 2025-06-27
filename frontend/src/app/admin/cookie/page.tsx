@@ -250,15 +250,15 @@ export default function CookieManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Cookie YouTube
           </h1>
-          <p className="text-muted-foreground">
-            Quản lý cookie xác thực cho các platform
+          <p className="text-gray-600">
+            Quản lý cookie xác thực cho YouTube và các platform khác
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export default function CookieManagementPage() {
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Làm mới
+            {isLoading ? 'Đang tải...' : 'Làm mới'}
           </Button>
         </div>
       </div>
