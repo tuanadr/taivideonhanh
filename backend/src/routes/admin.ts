@@ -3,6 +3,7 @@ import { body, query, param, validationResult } from 'express-validator';
 import { authenticateAdmin, requireAdminRole, requireAdminPermission, generateAdminToken } from '../middleware/adminAuth';
 import AdminService from '../services/adminService';
 import CookieService from '../services/cookieService';
+import cookieRoutes from './cookie';
 
 const router = Router();
 
@@ -504,6 +505,9 @@ router.delete('/cookie',
     }
   }
 );
+
+// Mount cookie routes
+router.use('/cookie', cookieRoutes);
 
 // Mount user management routes
 import userManagementRoutes from './userManagement';
