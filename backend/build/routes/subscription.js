@@ -41,13 +41,25 @@ const createPaymentIntentValidation = [
 const cancelSubscriptionValidation = [
     (0, express_validator_1.param)('subscriptionId').isUUID().withMessage('Subscription ID must be a valid UUID'),
 ];
+const switchBillingCycleValidation = [
+    (0, express_validator_1.body)('newPlanId').isUUID().withMessage('New plan ID must be a valid UUID'),
+    (0, express_validator_1.body)('prorationMode').optional().isIn(['immediate', 'next_cycle']).withMessage('Proration mode must be immediate or next_cycle'),
+];
 /**
  * GET /api/subscription/plans
- * Get all available subscription plans
+ * Get all available subscription plans grouped by billing cycle
  */
 router.get('/plans', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const plans = yield subscriptionService_1.default.getAvailablePlans();
+        const groupedPlans = yield subscriptionService_1.default.getPlansGroupedByBilling();
+        const allPlans = yield subscriptionService_1.default.getAvailablePlans();
+        // Calculate savings for annual plans
+        const monthlyProPlan = groupedPlans.monthly.find(p => p.name.includes('Pro'));
+        const annualProPlan = groupedPlans.annual.find(p => p.name.includes('Pro'));
+        let savings = null;
+        if (monthlyProPlan && annualProPlan) {
+            savings = subscriptionService_1.default.calculateAnnualSavings(monthlyProPlan, annualProPlan);
+        }
         // Set proper cache headers to prevent 304 Not Modified issues
         res.set({
             'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -58,18 +70,51 @@ router.get('/plans', (req, res) => __awaiter(void 0, void 0, void 0, function* (
         });
         res.json({
             message: 'Subscription plans retrieved successfully',
-            plans: plans.map(plan => ({
+            plans: allPlans.map(plan => ({
                 id: plan.id,
                 name: plan.name,
                 price: plan.price,
                 currency: plan.currency,
                 displayPrice: plan.getDisplayPrice(),
                 durationDays: plan.duration_days,
+                billingCycle: plan.billing_cycle,
+                discountPercentage: plan.discount_percentage,
                 features: plan.features,
                 maxDownloadsPerDay: plan.max_downloads_per_day,
                 maxConcurrentStreams: plan.max_concurrent_streams,
                 maxQuality: plan.max_quality,
             })),
+            grouped: {
+                monthly: groupedPlans.monthly.map(plan => ({
+                    id: plan.id,
+                    name: plan.name,
+                    price: plan.price,
+                    currency: plan.currency,
+                    displayPrice: plan.getDisplayPrice(),
+                    durationDays: plan.duration_days,
+                    billingCycle: plan.billing_cycle,
+                    discountPercentage: plan.discount_percentage,
+                    features: plan.features,
+                    maxDownloadsPerDay: plan.max_downloads_per_day,
+                    maxConcurrentStreams: plan.max_concurrent_streams,
+                    maxQuality: plan.max_quality,
+                })),
+                annual: groupedPlans.annual.map(plan => ({
+                    id: plan.id,
+                    name: plan.name,
+                    price: plan.price,
+                    currency: plan.currency,
+                    displayPrice: plan.getDisplayPrice(),
+                    durationDays: plan.duration_days,
+                    billingCycle: plan.billing_cycle,
+                    discountPercentage: plan.discount_percentage,
+                    features: plan.features,
+                    maxDownloadsPerDay: plan.max_downloads_per_day,
+                    maxConcurrentStreams: plan.max_concurrent_streams,
+                    maxQuality: plan.max_quality,
+                })),
+            },
+            savings
         });
     }
     catch (error) {
@@ -307,6 +352,43 @@ router.get('/payments', auth_1.authenticate, (req, res) => __awaiter(void 0, voi
         res.status(500).json({
             error: 'Failed to fetch payment history',
             code: 'PAYMENT_HISTORY_FETCH_FAILED'
+        });
+    }
+}));
+/**
+ * POST /api/subscription/switch-billing-cycle
+ * Switch between monthly and annual billing
+ */
+router.post('/switch-billing-cycle', auth_1.authenticate, switchBillingCycleValidation, validateRequest, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+        if (!userId) {
+            return res.status(401).json({
+                error: 'User not authenticated'
+            });
+        }
+        const { newPlanId, prorationMode = 'immediate' } = req.body;
+        const result = yield subscriptionService_1.default.switchBillingCycle(userId, newPlanId, prorationMode);
+        res.json({
+            message: 'Billing cycle switched successfully',
+            subscription: {
+                id: result.subscription.id,
+                planId: result.subscription.plan_id,
+                status: result.subscription.status,
+                startsAt: result.subscription.starts_at,
+                expiresAt: result.subscription.expires_at,
+                autoRenew: result.subscription.auto_renew,
+            },
+            prorationAmount: result.prorationAmount,
+            effectiveDate: result.effectiveDate,
+        });
+    }
+    catch (error) {
+        console.error('Error switching billing cycle:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Failed to switch billing cycle',
+            code: 'BILLING_CYCLE_SWITCH_FAILED'
         });
     }
 }));

@@ -10,16 +10,13 @@ import { Navigation } from '@/components/layout/Navigation';
 import { AnnualPricingPlans } from '@/components/subscription/AnnualPricingPlans';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { 
-  Crown, 
-  Check, 
-  X, 
-  Zap, 
-  Download, 
-  Video, 
+import {
+  Crown,
+  Zap,
+  Download,
+  Video,
   Headphones,
   Shield,
-  Star,
   AlertCircle,
   ArrowRight
 } from 'lucide-react';
@@ -132,32 +129,7 @@ export default function UpgradePage() {
     }
   };
 
-  const features = {
-    free: [
-      { text: '5 lượt tải/ngày', included: true },
-      { text: 'Chất lượng tối đa 720p', included: true },
-      { text: '1 tải đồng thời', included: true },
-      { text: 'Hỗ trợ cơ bản', included: true },
-      { text: 'Có quảng cáo', included: false },
-      { text: 'Chất lượng 4K', included: false },
-      { text: 'Tải không giới hạn', included: false },
-      { text: 'Tải playlist', included: false },
-      { text: 'API truy cập', included: false },
-      { text: 'Hỗ trợ ưu tiên', included: false },
-    ],
-    pro: [
-      { text: 'Tải không giới hạn', included: true },
-      { text: 'Chất lượng tối đa 4K', included: true },
-      { text: '5 tải đồng thời', included: true },
-      { text: 'Không có quảng cáo', included: true },
-      { text: 'Tải playlist', included: true },
-      { text: 'API truy cập', included: true },
-      { text: 'Hỗ trợ ưu tiên', included: true },
-      { text: 'Tính năng beta', included: true },
-      { text: 'Backup cloud', included: true },
-      { text: 'Thống kê chi tiết', included: true },
-    ]
-  };
+
 
   return (
     <>
@@ -200,87 +172,21 @@ export default function UpgradePage() {
             </CardContent>
           </Card>
 
-          {/* Feature Comparison */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Free Plan */}
-            <Card className="relative">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-blue-500" />
-                    Gói Miễn Phí
-                  </CardTitle>
-                  <Badge variant="secondary">Hiện tại</Badge>
-                </div>
-                <CardDescription>
-                  Gói cơ bản với các tính năng thiết yếu
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-3xl font-bold">
-                  0 VND
-                  <span className="text-lg font-normal text-muted-foreground">/tháng</span>
-                </div>
-                
-                <div className="space-y-3">
-                  {features.free.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      {feature.included ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <X className="h-4 w-4 text-red-500" />
-                      )}
-                      <span className={`text-sm ${!feature.included ? 'text-muted-foreground line-through' : ''}`}>
-                        {feature.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pro Plan */}
-            <Card className="relative border-orange-200 shadow-lg">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
-                  <Star className="h-3 w-3 mr-1" />
-                  Khuyến nghị
-                </Badge>
-              </div>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-orange-500" />
-                  Gói Pro
-                </CardTitle>
-                <CardDescription>
-                  Trải nghiệm hoàn hảo với tất cả tính năng cao cấp
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-3xl font-bold text-orange-600">
-                  99,000 VND
-                  <span className="text-lg font-normal text-muted-foreground">/tháng</span>
-                </div>
-                
-                <div className="space-y-3">
-                  {features.pro.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span className="text-sm font-medium">{feature.text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Button 
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-                  onClick={() => handleSelectPlan('pro')}
-                >
-                  <Crown className="h-4 w-4 mr-2" />
-                  Nâng cấp ngay
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Pricing Plans Component */}
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Chọn gói phù hợp</CardTitle>
+              <CardDescription>
+                Bắt đầu với gói Pro ngay hôm nay - Tiết kiệm 20% với gói năm!
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AnnualPricingPlans
+                onSelectPlan={handleSelectPlan}
+                showTestPayment={process.env.NODE_ENV === 'development'}
+              />
+            </CardContent>
+          </Card>
 
           {/* Benefits Section */}
           <Card>
@@ -335,21 +241,6 @@ export default function UpgradePage() {
             </CardContent>
           </Card>
 
-          {/* Pricing Plans Component */}
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle>Chọn gói phù hợp</CardTitle>
-              <CardDescription>
-                Bắt đầu với gói Pro ngay hôm nay - Tiết kiệm 20% với gói năm!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AnnualPricingPlans
-                onSelectPlan={handleSelectPlan}
-                showTestPayment={process.env.NODE_ENV === 'development'}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
     </>
