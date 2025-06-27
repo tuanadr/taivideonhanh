@@ -204,8 +204,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="flex items-center space-x-4">
-              <Badge variant="outline" className="text-xs">
+            <div className="flex items-center space-x-3">
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                 Admin Dashboard
               </Badge>
               <span className="text-sm text-muted-foreground">
@@ -216,7 +216,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-4">
           {children}
         </main>
       </div>
