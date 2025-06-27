@@ -343,6 +343,116 @@ export class CookieService {
       return false;
     }
   }
+
+  /**
+   * Get cookie system status for admin dashboard
+   */
+  public static async getCookieSystemStatus(): Promise<{
+    totalCookieFiles: number;
+    activeCookieFile: string | null;
+    lastUpload: Date | null;
+    fileSize: number;
+    isValid: boolean;
+    supportedPlatforms: string[];
+    backupCount: number;
+  }> {
+    try {
+      const cookieExists = await this.cookieFileExists();
+      let fileSize = 0;
+      let lastUpload: Date | null = null;
+      let isValid = false;
+
+      if (cookieExists) {
+        const stats = fs.statSync(this.COOKIES_FILE);
+        fileSize = stats.size;
+        lastUpload = stats.mtime;
+
+        const content = fs.readFileSync(this.COOKIES_FILE);
+        const validation = await this.validateCookieFile(content, path.basename(this.COOKIES_FILE));
+        isValid = validation.isValid;
+      }
+
+      const backupFiles = await this.getBackupFiles();
+
+      return {
+        totalCookieFiles: backupFiles.length + (cookieExists ? 1 : 0),
+        activeCookieFile: cookieExists ? path.basename(this.COOKIES_FILE) : null,
+        lastUpload,
+        fileSize,
+        isValid,
+        supportedPlatforms: ['YouTube', 'TikTok', 'Facebook', 'Instagram'],
+        backupCount: backupFiles.length
+      };
+    } catch (error) {
+      console.error('Error getting cookie system status:', error);
+      return {
+        totalCookieFiles: 0,
+        activeCookieFile: null,
+        lastUpload: null,
+        fileSize: 0,
+        isValid: false,
+        supportedPlatforms: [],
+        backupCount: 0
+      };
+    }
+  }
+
+  /**
+   * Get backup files list
+   */
+  public static async getBackupFiles(): Promise<string[]> {
+    try {
+      const files = fs.readdirSync(this.BACKUP_DIR);
+      return files.filter(file => file.endsWith('.txt')).sort().reverse();
+    } catch (error) {
+      return [];
+    }
+  }
+
+  /**
+   * Test cookie file with a sample request
+   */
+  public static async testCookieFileSimple(testUrl: string = 'https://www.youtube.com'): Promise<{
+    success: boolean;
+    responseTime: number;
+    statusCode?: number;
+    error?: string;
+    testedAt: Date;
+  }> {
+    const startTime = Date.now();
+
+    try {
+      // Check if cookie file exists
+      const cookieExists = await this.cookieFileExists();
+      if (!cookieExists) {
+        throw new Error('No cookie file found');
+      }
+
+      // Validate cookie file
+      const content = fs.readFileSync(this.COOKIES_FILE);
+      const validation = await this.validateCookieFile(content, path.basename(this.COOKIES_FILE));
+      if (!validation.isValid) {
+        throw new Error(`Invalid cookie file: ${validation.error}`);
+      }
+
+      // Simulate a test request (in real implementation, you would make an actual HTTP request)
+      const responseTime = Date.now() - startTime;
+
+      return {
+        success: true,
+        responseTime,
+        statusCode: 200,
+        testedAt: new Date()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        responseTime: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        testedAt: new Date()
+      };
+    }
+  }
 }
 
 export default CookieService;

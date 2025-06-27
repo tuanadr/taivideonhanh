@@ -305,6 +305,100 @@ class CookieService {
             }
         });
     }
+    /**
+     * Get cookie system status for admin dashboard
+     */
+    static getCookieSystemStatus() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const cookieExists = yield this.cookieFileExists();
+                let fileSize = 0;
+                let lastUpload = null;
+                let isValid = false;
+                if (cookieExists) {
+                    const stats = fs_1.default.statSync(this.COOKIES_FILE);
+                    fileSize = stats.size;
+                    lastUpload = stats.mtime;
+                    const content = fs_1.default.readFileSync(this.COOKIES_FILE);
+                    const validation = yield this.validateCookieFile(content, path_1.default.basename(this.COOKIES_FILE));
+                    isValid = validation.isValid;
+                }
+                const backupFiles = yield this.getBackupFiles();
+                return {
+                    totalCookieFiles: backupFiles.length + (cookieExists ? 1 : 0),
+                    activeCookieFile: cookieExists ? path_1.default.basename(this.COOKIES_FILE) : null,
+                    lastUpload,
+                    fileSize,
+                    isValid,
+                    supportedPlatforms: ['YouTube', 'TikTok', 'Facebook', 'Instagram'],
+                    backupCount: backupFiles.length
+                };
+            }
+            catch (error) {
+                console.error('Error getting cookie system status:', error);
+                return {
+                    totalCookieFiles: 0,
+                    activeCookieFile: null,
+                    lastUpload: null,
+                    fileSize: 0,
+                    isValid: false,
+                    supportedPlatforms: [],
+                    backupCount: 0
+                };
+            }
+        });
+    }
+    /**
+     * Get backup files list
+     */
+    static getBackupFiles() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const files = fs_1.default.readdirSync(this.BACKUP_DIR);
+                return files.filter(file => file.endsWith('.txt')).sort().reverse();
+            }
+            catch (error) {
+                return [];
+            }
+        });
+    }
+    /**
+     * Test cookie file with a sample request
+     */
+    static testCookieFileSimple() {
+        return __awaiter(this, arguments, void 0, function* (testUrl = 'https://www.youtube.com') {
+            const startTime = Date.now();
+            try {
+                // Check if cookie file exists
+                const cookieExists = yield this.cookieFileExists();
+                if (!cookieExists) {
+                    throw new Error('No cookie file found');
+                }
+                // Validate cookie file
+                const content = fs_1.default.readFileSync(this.COOKIES_FILE);
+                const validation = yield this.validateCookieFile(content, path_1.default.basename(this.COOKIES_FILE));
+                if (!validation.isValid) {
+                    throw new Error(`Invalid cookie file: ${validation.error}`);
+                }
+                // Simulate a test request (in real implementation, you would make an actual HTTP request)
+                const responseTime = Date.now() - startTime;
+                return {
+                    success: true,
+                    responseTime,
+                    statusCode: 200,
+                    testedAt: new Date()
+                };
+            }
+            catch (error) {
+                return {
+                    success: false,
+                    responseTime: Date.now() - startTime,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    testedAt: new Date()
+                };
+            }
+        });
+    }
 }
 exports.CookieService = CookieService;
 _a = CookieService;

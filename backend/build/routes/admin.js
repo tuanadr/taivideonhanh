@@ -17,6 +17,7 @@ const express_validator_1 = require("express-validator");
 const adminAuth_1 = require("../middleware/adminAuth");
 const adminService_1 = __importDefault(require("../services/adminService"));
 const cookieService_1 = __importDefault(require("../services/cookieService"));
+const cookie_1 = __importDefault(require("./cookie"));
 const router = (0, express_1.Router)();
 /**
  * Validation middleware
@@ -421,4 +422,6 @@ router.delete('/cookie', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireA
         });
     }
 }));
+// Mount cookie routes
+router.use('/cookie', cookie_1.default);
 exports.default = router;
