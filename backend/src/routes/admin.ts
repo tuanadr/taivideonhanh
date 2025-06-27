@@ -72,6 +72,92 @@ router.post('/login',
 );
 
 /**
+ * GET /api/admin/verify
+ * Verify admin token and return admin info
+ */
+router.get('/verify',
+  authenticateAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      // If we reach here, the token is valid (authenticateAdmin middleware passed)
+      const adminId = req.admin!.adminId;
+
+      // Get fresh admin data from database
+      const admin = await AdminService.getAdminById(adminId);
+      if (!admin) {
+        return res.status(401).json({
+          error: 'Admin account not found',
+          code: 'ADMIN_NOT_FOUND'
+        });
+      }
+
+      res.json({
+        message: 'Admin token verified',
+        admin: admin.toJSON(),
+        isValid: true,
+      });
+    } catch (error) {
+      console.error('Admin token verification error:', error);
+      res.status(500).json({
+        error: 'Token verification failed',
+        code: 'TOKEN_VERIFICATION_FAILED'
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/create-vn-admin
+ * Temporary endpoint to create admin@taivideonhanh.vn user
+ */
+router.post('/create-vn-admin',
+  async (req: Request, res: Response) => {
+    try {
+      // Security check - only allow if no .vn admin exists
+      const existingVnAdmin = await AdminService.getAdminByEmail('admin@taivideonhanh.vn');
+      if (existingVnAdmin) {
+        return res.status(400).json({
+          error: 'Admin user with .vn domain already exists',
+          code: 'ADMIN_EXISTS'
+        });
+      }
+
+      // Create admin user
+      const admin = await AdminService.createAdmin(
+        'admin@taivideonhanh.vn',
+        'admin123456',
+        'super_admin',
+        [
+          'user_management',
+          'subscription_management',
+          'payment_management',
+          'system_settings',
+          'analytics_view'
+        ]
+      );
+
+      res.json({
+        message: 'Admin user created successfully',
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role,
+          permissions: admin.permissions,
+          created_at: admin.created_at
+        }
+      });
+    } catch (error) {
+      console.error('Admin creation error:', error);
+      res.status(500).json({
+        error: 'Failed to create admin user',
+        code: 'ADMIN_CREATION_FAILED',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
  * GET /api/admin/dashboard/stats
  * Get dashboard statistics
  */
