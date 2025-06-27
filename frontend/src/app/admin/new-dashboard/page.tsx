@@ -11,6 +11,7 @@ import StatCard from '@/components/admin/dashboard/StatCard';
 import SystemHealth from '@/components/admin/dashboard/SystemHealth';
 import ActivityFeed from '@/components/admin/dashboard/ActivityFeed';
 import QuickActions from '@/components/admin/dashboard/QuickActions';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 
 // Icons
 import {
@@ -301,7 +302,7 @@ export default function NewDashboardPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminPageWrapper spacing="normal" maxWidth="7xl">
         {/* Header Skeleton */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
@@ -335,12 +336,12 @@ export default function NewDashboardPage() {
             <Skeleton className="h-64 w-full" />
           </div>
         </div>
-      </div>
+      </AdminPageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <AdminPageWrapper spacing="normal" maxWidth="7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
@@ -441,6 +442,6 @@ export default function NewDashboardPage() {
           />
         </div>
       </div>
-    </div>
+    </AdminPageWrapper>
   );
 }

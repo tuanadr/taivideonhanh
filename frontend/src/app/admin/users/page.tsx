@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import {
   Users,
   Search,
@@ -325,7 +326,7 @@ export default function AdminUsersPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminPageWrapper spacing="normal" maxWidth="7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -344,12 +345,12 @@ export default function AdminUsersPage() {
             </Card>
           ))}
         </div>
-      </div>
+      </AdminPageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageWrapper spacing="normal" maxWidth="7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
@@ -572,6 +573,6 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageWrapper>
   );
 }

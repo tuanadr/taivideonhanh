@@ -28,6 +28,33 @@
   padding-top: 0;
 }
 
+/* AdminPageWrapper styles */
+.admin-page-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
+.admin-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-content {
+  margin-top: 0;
+}
+
+/* Debug spacing (remove in production) */
+/*
+.debug-spacing * {
+  border: 1px solid red !important;
+  background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.debug-spacing .admin-page-wrapper {
+  border: 2px solid blue !important;
+  background: rgba(0, 0, 255, 0.1) !important;
+}
+*/
+
 /* Smooth animations for all interactive elements */
 .dashboard-card {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
