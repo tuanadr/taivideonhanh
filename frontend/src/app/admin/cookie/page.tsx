@@ -1,11 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import {
   Upload,
   FileText,
@@ -14,11 +9,7 @@ import {
   AlertCircle,
   Trash2,
   TestTube,
-  RefreshCw,
-  Cookie,
-  CloudUpload,
-  FileCheck,
-  Clock
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
