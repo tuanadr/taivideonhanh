@@ -74,6 +74,106 @@ router.post('/login', loginValidation, validateRequest, (req, res) => __awaiter(
     }
 }));
 /**
+ * GET /api/admin/verify
+ * Verify admin token and return admin info
+ */
+router.get('/verify', adminAuth_1.authenticateAdmin, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // If we reach here, the token is valid (authenticateAdmin middleware passed)
+        const adminId = req.admin.adminId;
+        // Get fresh admin data from database
+        const admin = yield adminService_1.default.getAdminById(adminId);
+        if (!admin) {
+            return res.status(401).json({
+                error: 'Admin account not found',
+                code: 'ADMIN_NOT_FOUND'
+            });
+        }
+        res.json({
+            message: 'Admin token verified',
+            admin: admin.toJSON(),
+            isValid: true,
+        });
+    }
+    catch (error) {
+        console.error('Admin token verification error:', error);
+        res.status(500).json({
+            error: 'Token verification failed',
+            code: 'TOKEN_VERIFICATION_FAILED'
+        });
+    }
+}));
+/**
+ * POST /api/admin/create-vn-admin
+ * Create admin@taivideonhanh.vn user
+ */
+router.post('/create-vn-admin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Security check - only allow if no .vn admin exists
+        const existingVnAdmin = yield adminService_1.default.getAdminByEmail('admin@taivideonhanh.vn');
+        if (existingVnAdmin) {
+            return res.status(400).json({
+                error: 'Admin user with .vn domain already exists',
+                code: 'ADMIN_EXISTS'
+            });
+        }
+        // Create admin user
+        const admin = yield adminService_1.default.createAdmin('admin@taivideonhanh.vn', 'admin123456', 'super_admin', [
+            'user_management',
+            'subscription_management',
+            'payment_management',
+            'system_settings',
+            'analytics_view'
+        ]);
+        res.json({
+            message: 'Admin user created successfully',
+            admin: {
+                id: admin.id,
+                email: admin.email,
+                role: admin.role,
+                permissions: admin.permissions,
+                created_at: admin.created_at
+            }
+        });
+    }
+    catch (error) {
+        console.error('Admin creation error:', error);
+        res.status(500).json({
+            error: 'Failed to create admin user',
+            code: 'ADMIN_CREATION_FAILED',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+}));
+/**
+ * GET /api/admin/status
+ * Get admin system status and health
+ */
+router.get('/status', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const adminCount = yield adminService_1.default.getAdminCount();
+        const activeAdmins = yield adminService_1.default.getActiveAdminCount();
+        res.json({
+            message: 'Admin system status',
+            status: {
+                totalAdmins: adminCount,
+                activeAdmins: activeAdmins,
+                hasVnAdmin: yield adminService_1.default.hasAdminWithEmail('admin@taivideonhanh.vn'),
+                hasComAdmin: yield adminService_1.default.hasAdminWithEmail('admin@taivideonhanh.com'),
+                systemHealthy: adminCount > 0,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+    catch (error) {
+        console.error('Admin status error:', error);
+        res.status(500).json({
+            error: 'Failed to get admin status',
+            code: 'ADMIN_STATUS_FAILED'
+        });
+    }
+}));
+/**
  * GET /api/admin/dashboard/stats
  * Get dashboard statistics
  */

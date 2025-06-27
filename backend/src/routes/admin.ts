@@ -108,7 +108,7 @@ router.get('/verify',
 
 /**
  * POST /api/admin/create-vn-admin
- * Temporary endpoint to create admin@taivideonhanh.vn user
+ * Create admin@taivideonhanh.vn user
  */
 router.post('/create-vn-admin',
   async (req: Request, res: Response) => {
@@ -152,6 +152,37 @@ router.post('/create-vn-admin',
         error: 'Failed to create admin user',
         code: 'ADMIN_CREATION_FAILED',
         details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/status
+ * Get admin system status and health
+ */
+router.get('/status',
+  async (req: Request, res: Response) => {
+    try {
+      const adminCount = await AdminService.getAdminCount();
+      const activeAdmins = await AdminService.getActiveAdminCount();
+
+      res.json({
+        message: 'Admin system status',
+        status: {
+          totalAdmins: adminCount,
+          activeAdmins: activeAdmins,
+          hasVnAdmin: await AdminService.hasAdminWithEmail('admin@taivideonhanh.vn'),
+          hasComAdmin: await AdminService.hasAdminWithEmail('admin@taivideonhanh.com'),
+          systemHealthy: adminCount > 0,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Admin status error:', error);
+      res.status(500).json({
+        error: 'Failed to get admin status',
+        code: 'ADMIN_STATUS_FAILED'
       });
     }
   }
