@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import {
   Upload,
   FileText,
@@ -216,7 +217,7 @@ export default function CookieManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminPageWrapper spacing="normal" maxWidth="7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -245,12 +246,12 @@ export default function CookieManagementPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </AdminPageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageWrapper spacing="normal" maxWidth="7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
@@ -458,6 +459,6 @@ export default function CookieManagementPage() {
         variant="destructive"
         onConfirm={deleteCookieFile}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

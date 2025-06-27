@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
+import AdminPageWrapper from '@/components/admin/AdminPageWrapper';
 import {
   Save,
   AlertTriangle,
@@ -171,7 +172,7 @@ export default function AdminSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <AdminPageWrapper spacing="normal" maxWidth="7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -203,12 +204,12 @@ export default function AdminSettingsPage() {
             ))}
           </div>
         </div>
-      </div>
+      </AdminPageWrapper>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminPageWrapper spacing="normal" maxWidth="7xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
@@ -367,6 +368,6 @@ export default function AdminSettingsPage() {
         onConfirm={saveSettings}
         isLoading={isSaving}
       />
-    </div>
+    </AdminPageWrapper>
   );
 }

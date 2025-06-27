@@ -8,6 +8,8 @@ interface AdminPageWrapperProps {
   className?: string;
   spacing?: 'tight' | 'normal' | 'loose';
   maxWidth?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
+  animate?: boolean;
+  testId?: string;
 }
 
 const spacingConfig = {
@@ -30,21 +32,27 @@ const maxWidthConfig = {
   '7xl': 'max-w-7xl'
 };
 
-export default function AdminPageWrapper({ 
-  children, 
+export default function AdminPageWrapper({
+  children,
   className,
   spacing = 'normal',
-  maxWidth = 'none'
+  maxWidth = 'none',
+  animate = true,
+  testId = 'admin-page-wrapper'
 }: AdminPageWrapperProps) {
   return (
-    <div 
+    <div
       className={cn(
         'admin-page-wrapper',
         spacingConfig[spacing],
         maxWidth !== 'none' && maxWidthConfig[maxWidth],
         maxWidth !== 'none' && 'mx-auto',
+        animate && 'animate-fade-in-up',
         className
       )}
+      data-testid={testId}
+      role="main"
+      aria-label="Admin page content"
     >
       {children}
     </div>
