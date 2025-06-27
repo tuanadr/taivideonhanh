@@ -2,6 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Shield,
+  Mail,
+  Lock,
+  LogIn,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Clock
+} from 'lucide-react';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('admin@taivideonhanh.vn');
@@ -61,144 +79,138 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#f9fafb',
-      padding: '20px'
-    }}>
-      <div style={{
-        maxWidth: '400px',
-        width: '100%',
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#111827',
-            margin: '0 0 10px 0'
-          }}>
-            🔐 Admin Login
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="flex justify-center">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
+              <Shield className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Admin Panel
           </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            margin: '0'
-          }}>
-            Truy cập bảng điều khiển quản trị
+          <p className="text-muted-foreground">
+            Truy cập bảng điều khiển quản trị hệ thống
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '5px'
-            }}>
-              📧 Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="admin@taivideonhanh.vn"
-            />
-          </div>
+        {/* Login Card */}
+        <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl font-semibold">Đăng nhập</CardTitle>
+            <CardDescription>
+              Nhập thông tin đăng nhập để tiếp tục
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '14px',
-              fontWeight: '500',
-              color: '#374151',
-              marginBottom: '5px'
-            }}>
-              🔑 Mật khẩu
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-              placeholder="admin123456"
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@taivideonhanh.vn"
+                  required
+                  className="h-11"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: isLoading ? '#9ca3af' : '#2563eb',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-          >
-            {isLoading ? '⏳ Đang đăng nhập...' : '🚀 Đăng nhập'}
-          </button>
-        </form>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Mật khẩu
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="admin123456"
+                  required
+                  className="h-11"
+                />
+              </div>
 
-        {message && (
-          <div style={{
-            marginTop: '20px',
-            padding: '12px',
-            backgroundColor: message.includes('✅') ? '#d1fae5' : '#fee2e2',
-            border: `1px solid ${message.includes('✅') ? '#a7f3d0' : '#fecaca'}`,
-            borderRadius: '6px',
-            fontSize: '14px',
-            textAlign: 'center'
-          }}>
-            {message}
-          </div>
-        )}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="mr-2 h-4 w-4" />
+                    Đăng nhập
+                  </>
+                )}
+              </Button>
+            </form>
 
-        <div style={{
-          marginTop: '20px',
-          padding: '15px',
-          backgroundColor: '#f3f4f6',
-          borderRadius: '6px',
-          fontSize: '12px',
-          color: '#6b7280'
-        }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>🔧 Debug Info:</h4>
-          <p style={{ margin: '5px 0' }}><strong>API URL:</strong> /api/admin/login</p>
-          <p style={{ margin: '5px 0' }}><strong>Default Email:</strong> admin@taivideonhanh.vn</p>
-          <p style={{ margin: '5px 0' }}><strong>Default Password:</strong> admin123456</p>
-          <p style={{ margin: '5px 0' }}><strong>Environment:</strong> {typeof window !== 'undefined' ? 'client' : 'server'}</p>
-          <p style={{ margin: '5px 0' }}><strong>Timestamp:</strong> {new Date().toLocaleString()}</p>
-        </div>
+            {message && (
+              <Alert className={message.includes('✅') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                {message.includes('✅') ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                )}
+                <AlertDescription className={message.includes('✅') ? 'text-green-800' : 'text-red-800'}>
+                  {message.replace(/[✅❌]/g, '').trim()}
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Debug Info Card */}
+        <Card className="bg-slate-50/50 border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Thông tin Debug
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs text-muted-foreground">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Badge variant="outline" className="text-xs">API URL</Badge>
+                <p className="mt-1">/api/admin/login</p>
+              </div>
+              <div>
+                <Badge variant="outline" className="text-xs">Environment</Badge>
+                <p className="mt-1">{typeof window !== 'undefined' ? 'client' : 'server'}</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <Badge variant="outline" className="text-xs mb-2">Default Credentials</Badge>
+              <div className="space-y-1">
+                <p><strong>Email:</strong> admin@taivideonhanh.vn</p>
+                <p><strong>Password:</strong> admin123456</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center gap-2 text-xs">
+              <Clock className="h-3 w-3" />
+              <span>{new Date().toLocaleString('vi-VN')}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
