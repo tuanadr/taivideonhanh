@@ -301,7 +301,7 @@ export default function NewDashboardPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-8 p-6">
+      <div className="space-y-6">
         {/* Header Skeleton */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
@@ -340,7 +340,7 @@ export default function NewDashboardPage() {
   }
 
   return (
-    <div className="space-y-8 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
