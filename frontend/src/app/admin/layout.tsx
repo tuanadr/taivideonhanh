@@ -30,7 +30,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
 
   // Check if current page is a login page (should not require authentication)
-  const isLoginPage = pathname === '/admin/login' || pathname === '/admin/simple-login';
+  const isLoginPage = pathname === '/admin/login' ||
+                     pathname === '/admin/simple-login' ||
+                     pathname === '/admin/direct-login';
 
   useEffect(() => {
     // Skip auth check for login pages

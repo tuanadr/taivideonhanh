@@ -39,15 +39,10 @@ const nextConfig = {
     ];
   },
 
-  // Redirects for admin routes
+  // Redirects for admin routes - removed automatic redirect to login
+  // This was causing the login loop issue
   async redirects() {
-    return [
-      {
-        source: '/admin',
-        destination: '/admin/login',
-        permanent: false,
-      },
-    ];
+    return [];
   },
 
   // Optimize images
