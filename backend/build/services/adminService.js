@@ -309,6 +309,68 @@ class AdminService {
         });
     }
     /**
+     * Get admin by ID
+     */
+    getAdminById(adminId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const admin = yield models_1.Admin.findOne({
+                where: {
+                    id: adminId,
+                    is_active: true,
+                },
+            });
+            return admin;
+        });
+    }
+    /**
+     * Get admin by email
+     */
+    getAdminByEmail(email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const admin = yield models_1.Admin.findOne({
+                where: {
+                    email,
+                    is_active: true,
+                },
+            });
+            return admin;
+        });
+    }
+    /**
+     * Get total admin count
+     */
+    getAdminCount() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield models_1.Admin.count();
+        });
+    }
+    /**
+     * Get active admin count
+     */
+    getActiveAdminCount() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield models_1.Admin.count({
+                where: {
+                    is_active: true,
+                },
+            });
+        });
+    }
+    /**
+     * Check if admin with specific email exists
+     */
+    hasAdminWithEmail(email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const count = yield models_1.Admin.count({
+                where: {
+                    email,
+                    is_active: true,
+                },
+            });
+            return count > 0;
+        });
+    }
+    /**
      * Initialize default admin user
      */
     initializeDefaultAdmin() {

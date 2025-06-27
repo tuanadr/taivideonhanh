@@ -401,6 +401,37 @@ class AdminService {
   }
 
   /**
+   * Get total admin count
+   */
+  async getAdminCount(): Promise<number> {
+    return await Admin.count();
+  }
+
+  /**
+   * Get active admin count
+   */
+  async getActiveAdminCount(): Promise<number> {
+    return await Admin.count({
+      where: {
+        is_active: true,
+      },
+    });
+  }
+
+  /**
+   * Check if admin with specific email exists
+   */
+  async hasAdminWithEmail(email: string): Promise<boolean> {
+    const count = await Admin.count({
+      where: {
+        email,
+        is_active: true,
+      },
+    });
+    return count > 0;
+  }
+
+  /**
    * Initialize default admin user
    */
   async initializeDefaultAdmin(): Promise<void> {
