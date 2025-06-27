@@ -9,9 +9,7 @@ import {
   Users,
   DollarSign,
   TrendingUp,
-  Activity,
   RefreshCw,
-  Shield,
   CheckCircle,
   AlertCircle,
   Settings,
@@ -31,8 +29,12 @@ interface DashboardStats {
 
 export default function SimpleAdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [adminInfo, setAdminInfo] = useState<any>(null);
+  const [adminInfo, setAdminInfo] = useState<{
+    id: string;
+    email: string;
+    role: string;
+    permissions: string[];
+  } | null>(null);
   const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'failed'>('checking');
 
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function SimpleAdminDashboard() {
         revenueGrowth: 8.3
       });
     } finally {
-      setIsLoading(false);
+      // Stats loaded
     }
   };
 
