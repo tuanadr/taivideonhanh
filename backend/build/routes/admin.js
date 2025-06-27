@@ -424,4 +424,7 @@ router.delete('/cookie', adminAuth_1.authenticateAdmin, (0, adminAuth_1.requireA
 }));
 // Mount cookie routes
 router.use('/cookie', cookie_1.default);
+// Mount user management routes
+const userManagement_1 = __importDefault(require("./userManagement"));
+router.use('/users', userManagement_1.default);
 exports.default = router;

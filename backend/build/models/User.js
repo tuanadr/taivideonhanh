@@ -88,6 +88,20 @@ User.init({
             len: [60, 60], // bcrypt hash length
         },
     },
+    first_name: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            len: [1, 50],
+        },
+    },
+    last_name: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            len: [1, 50],
+        },
+    },
     subscription_tier: {
         type: sequelize_1.DataTypes.ENUM('free', 'pro'),
         allowNull: false,
@@ -102,6 +116,16 @@ User.init({
         type: sequelize_1.DataTypes.DATE,
         allowNull: true,
     },
+    is_active: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+    },
+    is_suspended: {
+        type: sequelize_1.DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
     created_at: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,
@@ -111,6 +135,18 @@ User.init({
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,
         defaultValue: sequelize_1.DataTypes.NOW,
+    },
+    deleted_at: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+    },
+    deletion_reason: {
+        type: sequelize_1.DataTypes.TEXT,
+        allowNull: true,
+    },
+    deleted_by: {
+        type: sequelize_1.DataTypes.UUID,
+        allowNull: true,
     },
 }, {
     sequelize: database_1.default,
