@@ -16,6 +16,25 @@ class SubscriptionPlan extends sequelize_1.Model {
             currency: this.currency,
         }).format(this.price);
     }
+    getMonthlyEquivalentPrice() {
+        if (this.billing_cycle === 'monthly') {
+            return this.price;
+        }
+        return this.price / 12;
+    }
+    getAnnualSavings(monthlyPrice) {
+        if (this.billing_cycle === 'annual') {
+            return (monthlyPrice * 12) - this.price;
+        }
+        return 0;
+    }
+    getDiscountPercentage(monthlyPrice) {
+        if (this.billing_cycle === 'annual') {
+            const annualAtMonthlyRate = monthlyPrice * 12;
+            return Math.round(((annualAtMonthlyRate - this.price) / annualAtMonthlyRate) * 100);
+        }
+        return 0;
+    }
 }
 SubscriptionPlan.init({
     id: {
@@ -46,6 +65,25 @@ SubscriptionPlan.init({
         validate: {
             min: 1,
         },
+    },
+    billing_cycle: {
+        type: sequelize_1.DataTypes.ENUM('monthly', 'annual'),
+        allowNull: false,
+        defaultValue: 'monthly',
+    },
+    discount_percentage: {
+        type: sequelize_1.DataTypes.DECIMAL(5, 2),
+        allowNull: false,
+        defaultValue: 0,
+        validate: {
+            min: 0,
+            max: 100,
+        },
+    },
+    stripe_price_id: {
+        type: sequelize_1.DataTypes.STRING,
+        allowNull: true,
+        unique: true,
     },
     features: {
         type: sequelize_1.DataTypes.JSON,
