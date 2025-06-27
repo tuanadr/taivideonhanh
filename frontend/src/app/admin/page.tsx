@@ -145,15 +145,15 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Dashboard
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Admin Dashboard
           </h1>
           <p className="text-muted-foreground mt-1">
-            Tổng quan hệ thống và thống kê hoạt động
+            Chào mừng đến hệ thống quản trị
           </p>
         </div>
         <Button
