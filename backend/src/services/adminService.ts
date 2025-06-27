@@ -373,6 +373,34 @@ class AdminService {
   }
 
   /**
+   * Get admin by ID
+   */
+  async getAdminById(adminId: string): Promise<Admin | null> {
+    const admin = await Admin.findOne({
+      where: {
+        id: adminId,
+        is_active: true,
+      },
+    });
+
+    return admin;
+  }
+
+  /**
+   * Get admin by email
+   */
+  async getAdminByEmail(email: string): Promise<Admin | null> {
+    const admin = await Admin.findOne({
+      where: {
+        email,
+        is_active: true,
+      },
+    });
+
+    return admin;
+  }
+
+  /**
    * Initialize default admin user
    */
   async initializeDefaultAdmin(): Promise<void> {
