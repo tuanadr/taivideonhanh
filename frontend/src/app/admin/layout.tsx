@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import '@/styles/admin-dashboard.css';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -370,8 +371,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-6 lg:p-8 bg-gray-50 min-h-[calc(100vh-4rem)]">
-          {children}
+        <main className="bg-gray-50 min-h-[calc(100vh-4rem)]">
+          <div className="p-4 sm:p-6 lg:p-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>
